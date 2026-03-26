@@ -1,11 +1,35 @@
-<div align="center">
+# Borgingsrapport Examencommissie
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+Deze applicatie helpt examencommissies bij het in kaart brengen en borgen van de kwaliteit van toetsing.
 
-  <h1>Built with AI Studio</h2>
+## Ontwikkeling (Lokaal draaien)
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+1. Installeer de afhankelijkheden:
+   ```bash
+   npm install
+   ```
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+2. Start de ontwikkelserver:
+   ```bash
+   npm run dev
+   ```
 
-</div>
+3. Bouw de applicatie voor productie:
+   ```bash
+   npm run build
+   ```
+
+## Deployment op GitHub Pages
+
+Deze repository is geoptimaliseerd voor automatische deployment naar GitHub Pages via GitHub Actions.
+
+### Hoe het werkt:
+Zodra je wijzigingen pusht naar de `main` of `master` branch, zal GitHub Actions automatisch de applicatie bouwen en publiceren naar GitHub Pages.
+
+### Instellen in GitHub:
+1. Ga naar de repository **Settings** in GitHub.
+2. Navigeer naar **Pages** (in het linkermenu).
+3. Onder **Build and deployment**, kies bij **Source** voor **GitHub Actions**.
+4. Push je code naar GitHub. De workflow `.github/workflows/deploy.yml` doet de rest!
+
+*Let op: zorg ervoor dat je de afbeelding `vertrouwensboom.png` in de `public/` map plaatst voordat je deployt, zodat deze correct wordt weergegeven.*
