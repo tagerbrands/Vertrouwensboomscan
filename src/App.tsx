@@ -339,7 +339,7 @@ export default function App() {
                 </p>
               </div>
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch mt-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch mt-8 print:break-before-page">
                 <div className="bg-slate-100 rounded-xl p-6 md:p-8 flex flex-col justify-start border border-slate-200">
                   <h3 className="text-2xl font-bold text-slate-800 mb-6 text-center">Borging is...</h3>
                   <div className="prose prose-slate prose-lg max-w-none">
@@ -384,7 +384,7 @@ export default function App() {
         </section>
 
         {/* Section 2: Self-Scan */}
-        <section id="zelfscan" className="space-y-8 scroll-mt-24">
+        <section id="zelfscan" className="space-y-8 scroll-mt-24 print:break-before-page">
           <div className="text-center max-w-3xl mx-auto space-y-4">
             <h2 className="text-3xl font-bold tracking-tight text-slate-900">Zelfscan van het Instrumentarium</h2>
             <p className="text-lg text-slate-600">
@@ -606,7 +606,7 @@ export default function App() {
                 </div>
               </div>
               
-              <div className="space-y-3 mt-8">
+              <div className="space-y-3 mt-8 print:break-before-page">
                 <h4 className="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2">Borgingsgraad per Categorie</h4>
                 <div className="flex flex-col gap-2">
                   {categories.map(category => {
@@ -654,7 +654,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 print:break-before-page print:break-inside-avoid">
               {/* Spider Chart */}
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
                 <h3 className="text-lg font-bold text-slate-800 mb-6 text-center">Inzet van Instrumenten (%)</h3>
@@ -721,39 +721,6 @@ export default function App() {
           </div>
 
           <div id="agenda-content" className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-slate-50 p-2 -m-2 rounded-xl">
-            {/* Aandachtspunten */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full">
-              <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
-                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5 text-amber-500" />
-                  Aandachtspunten
-                </h3>
-                <p className="text-sm text-slate-500 mt-1">Instrumenten die momenteel niet worden ingezet (geen "Doen we").</p>
-              </div>
-              <div className="p-6 flex-1 bg-slate-50/50">
-                {aandachtspunten.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-slate-400">
-                    <CheckCircle2 className="w-12 h-12 mb-2 text-emerald-400" />
-                    <p>Geen aandachtspunten. U zet alle instrumenten in!</p>
-                  </div>
-                ) : (
-                  <ul className="space-y-4">
-                    {aandachtspunten.map((item, idx) => (
-                      <li key={`aandacht-${idx}`} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className={`text-xs font-semibold px-2 py-1 rounded-md ${item.category.colorClass} ${item.category.textColorClass}`}>
-                            {item.category.name}
-                          </span>
-                          <span className="text-xs font-medium text-slate-500">{item.element.name}</span>
-                        </div>
-                        <p className="text-sm text-slate-700">{item.instrument.text}</p>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-
             {/* Borgingsagenda */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full">
               <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
@@ -805,6 +772,39 @@ export default function App() {
                             </div>
                           )}
                         </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+
+            {/* Aandachtspunten */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full print:break-before-page">
+              <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
+                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-amber-500" />
+                  Aandachtspunten
+                </h3>
+                <p className="text-sm text-slate-500 mt-1">Instrumenten die momenteel niet worden ingezet (geen "Doen we").</p>
+              </div>
+              <div className="p-6 flex-1 bg-slate-50/50">
+                {aandachtspunten.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400">
+                    <CheckCircle2 className="w-12 h-12 mb-2 text-emerald-400" />
+                    <p>Geen aandachtspunten. U zet alle instrumenten in!</p>
+                  </div>
+                ) : (
+                  <ul className="space-y-4">
+                    {aandachtspunten.map((item, idx) => (
+                      <li key={`aandacht-${idx}`} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`text-xs font-semibold px-2 py-1 rounded-md ${item.category.colorClass} ${item.category.textColorClass}`}>
+                            {item.category.name}
+                          </span>
+                          <span className="text-xs font-medium text-slate-500">{item.element.name}</span>
+                        </div>
+                        <p className="text-sm text-slate-700">{item.instrument.text}</p>
                       </li>
                     ))}
                   </ul>
