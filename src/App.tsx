@@ -382,7 +382,7 @@ export default function App() {
                   <h3 className="text-2xl font-bold text-slate-800 mb-6 text-center w-full">De Vertrouwensboom</h3>
                   <div className="relative w-full aspect-square max-w-md mx-auto overflow-hidden rounded-lg shadow-md bg-white flex items-center justify-center mt-auto mb-auto">
                     <img 
-                      src="/vertrouwensboom.png" 
+                      src="./vertrouwensboom.png" 
                       alt="Vertrouwensboom" 
                       className="object-contain w-full h-full"
                     />
