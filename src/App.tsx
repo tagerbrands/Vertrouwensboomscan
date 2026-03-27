@@ -414,15 +414,26 @@ export default function App() {
                   </p>
                 </div>
               </div>
-              <div className="bg-slate-100 rounded-xl p-4 flex flex-col items-center justify-center border border-slate-200">
-              <div className="relative w-full max-w-2xl mx-auto overflow-hidden rounded-lg shadow-md bg-white">
-    <img 
-      src="./vertrouwensboom.png" 
-      alt="Vertrouwensboom" 
-      className="w-full h-auto block"
-    />
-        </div>
-        </div>
+              <div className="bg-slate-100 rounded-xl p-4 flex flex-col items-center justify-center border border-slate-200 min-h-[400px]">
+                {/* Image placeholder - assuming user will add vertrouwensboom.png to public folder */}
+                <div className="relative w-full aspect-square max-w-md mx-auto overflow-hidden rounded-lg shadow-md bg-white flex items-center justify-center">
+                  <img 
+                    src="/vertrouwensboom.png" 
+                    alt="Vertrouwensboom" 
+                    className="object-contain w-full h-full"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                    }}
+                  />
+                  <div className="hidden absolute inset-0 flex flex-col items-center justify-center text-slate-400 p-6 text-center">
+                    <Info className="w-12 h-12 mb-4 opacity-50" />
+                    <p>Plaats de afbeelding <strong>vertrouwensboom.png</strong> in de public folder van de app om deze hier weer te geven.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* Section 2: Self-Scan */}
