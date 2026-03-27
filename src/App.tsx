@@ -313,14 +313,31 @@ export default function App() {
               <a href="#resultaten" className="text-sm font-medium text-slate-600 hover:text-slate-900">Resultaten</a>
               <a href="#agenda" className="text-sm font-medium text-slate-600 hover:text-slate-900">Agenda</a>
             </nav>
-            <div className="absolute right-0 top-1/2 -translate-y-1/2">
-              <button 
-                onClick={handlePrintAll}
-                className="hidden md:flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors print:hidden whitespace-nowrap"
-              >
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-2 print:hidden">
+              <span className="text-sm font-medium text-slate-600 flex items-center gap-1">
                 <Download className="w-4 h-4" />
-                Exporteer Alles
-              </button>
+                Exporteer:
+              </span>
+              <div className="flex bg-slate-100 rounded-lg p-1 border border-slate-200">
+                <button 
+                  onClick={handlePrintAll}
+                  className="px-3 py-1 rounded-md text-xs font-medium text-slate-700 hover:bg-white hover:shadow-sm transition-all"
+                >
+                  Alles
+                </button>
+                <button 
+                  onClick={() => handlePrintSection('resultaten')}
+                  className="px-3 py-1 rounded-md text-xs font-medium text-slate-700 hover:bg-white hover:shadow-sm transition-all"
+                >
+                  Resultaten
+                </button>
+                <button 
+                  onClick={() => handlePrintSection('agenda')}
+                  className="px-3 py-1 rounded-md text-xs font-medium text-slate-700 hover:bg-white hover:shadow-sm transition-all"
+                >
+                  Agenda
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -575,15 +592,6 @@ export default function App() {
             <p className="text-lg text-slate-600">
               Visuele weergave van uw zelfscan en de borgingsgraad per categorie.
             </p>
-            <div className="flex justify-center mt-4">
-              <button 
-                onClick={() => handlePrintSection('resultaten')}
-                className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors print:hidden"
-              >
-                <Download className="w-4 h-4" />
-                Exporteer Resultaten
-              </button>
-            </div>
           </div>
 
           <div id="resultaten-content" className="space-y-8 bg-slate-50 p-2 -m-2 rounded-xl">
@@ -709,15 +717,6 @@ export default function App() {
             <p className="text-lg text-slate-600">
               Overzicht van aandachtspunten en uw geprioriteerde borgingsagenda.
             </p>
-            <div className="flex justify-center mt-4">
-              <button 
-                onClick={() => handlePrintSection('agenda')}
-                className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors print:hidden"
-              >
-                <Download className="w-4 h-4" />
-                Exporteer Agenda
-              </button>
-            </div>
           </div>
 
           <div id="agenda-content" className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-slate-50 p-2 -m-2 rounded-xl">
