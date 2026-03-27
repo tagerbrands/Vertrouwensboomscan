@@ -1,16 +1,34 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { categories, Category, Instrument } from './data';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell } from 'recharts';
 import { ArrowUp, ArrowDown, CheckCircle2, AlertCircle, Info, GripVertical, Download, Star, User, Calendar } from 'lucide-react';
 
+// Helper to load state from localStorage
+const loadState = <T,>(key: string, defaultValue: T): T => {
+  try {
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : defaultValue;
+  } catch (e) {
+    return defaultValue;
+  }
+};
+
 export default function App() {
-  const [checkedDoeIk, setCheckedDoeIk] = useState<Record<string, boolean>>({});
-  const [checkedVergtActie, setCheckedVergtActie] = useState<Record<string, boolean>>({});
-  const [confidence, setConfidence] = useState<Record<string, number>>({});
-  const [agendaOrder, setAgendaOrder] = useState<string[]>([]);
+  const [checkedDoeIk, setCheckedDoeIk] = useState<Record<string, boolean>>(() => loadState('borging_doeIk', {}));
+  const [checkedVergtActie, setCheckedVergtActie] = useState<Record<string, boolean>>(() => loadState('borging_vergtActie', {}));
+  const [confidence, setConfidence] = useState<Record<string, number>>(() => loadState('borging_confidence', {}));
+  const [agendaOrder, setAgendaOrder] = useState<string[]>(() => loadState('borging_agendaOrder', []));
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [actionDetails, setActionDetails] = useState<Record<string, { owner: string, deadline: string }>>({});
-  const [showActionDetails, setShowActionDetails] = useState(false);
+  const [actionDetails, setActionDetails] = useState<Record<string, { owner: string, deadline: string }>>(() => loadState('borging_actionDetails', {}));
+  const [showActionDetails, setShowActionDetails] = useState(() => loadState('borging_showActionDetails', false));
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => { localStorage.setItem('borging_doeIk', JSON.stringify(checkedDoeIk)); }, [checkedDoeIk]);
+  useEffect(() => { localStorage.setItem('borging_vergtActie', JSON.stringify(checkedVergtActie)); }, [checkedVergtActie]);
+  useEffect(() => { localStorage.setItem('borging_confidence', JSON.stringify(confidence)); }, [confidence]);
+  useEffect(() => { localStorage.setItem('borging_agendaOrder', JSON.stringify(agendaOrder)); }, [agendaOrder]);
+  useEffect(() => { localStorage.setItem('borging_actionDetails', JSON.stringify(actionDetails)); }, [actionDetails]);
+  useEffect(() => { localStorage.setItem('borging_showActionDetails', JSON.stringify(showActionDetails)); }, [showActionDetails]);
 
   const handleActionDetailChange = (id: string, field: 'owner' | 'deadline', value: string) => {
     setActionDetails(prev => ({
@@ -340,6 +358,17 @@ export default function App() {
             <a href="#theorie" className="text-sm font-medium text-slate-600 hover:text-slate-900">Theorie</a>
             <a href="#zelfscan" className="text-sm font-medium text-slate-600 hover:text-slate-900">Zelfscan</a>
             <a href="#resultaten" className="text-sm font-medium text-slate-600 hover:text-slate-900">Resultaten</a>
+            <button 
+              onClick={() => {
+                if(window.confirm('Weet u zeker dat u alle ingevulde gegevens wilt wissen?')) {
+                  localStorage.clear();
+                  window.location.reload();
+                }
+              }}
+              className="flex items-center gap-2 bg-white text-slate-600 border border-slate-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors print:hidden"
+            >
+              Wis Gegevens
+            </button>
             <button 
               onClick={handleExport}
               className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors print:hidden"
