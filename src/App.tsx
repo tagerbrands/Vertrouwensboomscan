@@ -1,7 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { categories, Category, Instrument } from './data';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell } from 'recharts';
-import { ArrowUp, ArrowDown, CheckCircle2, AlertCircle, Info, GripVertical, Download, Star, User, Calendar } from 'lucide-react';
+import { ArrowUp, ArrowDown, CheckCircle2, AlertCircle, Info, GripVertical, Download, Star, User, Calendar, MessageSquare } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 // Helper to load state from localStorage
 const loadState = <T,>(key: string, defaultValue: T): T => {
@@ -20,7 +22,9 @@ export default function App() {
   const [agendaOrder, setAgendaOrder] = useState<string[]>(() => loadState('borging_agendaOrder', []));
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [actionDetails, setActionDetails] = useState<Record<string, { owner: string, deadline: string }>>(() => loadState('borging_actionDetails', {}));
-  const [showActionDetails, setShowActionDetails] = useState(() => loadState('borging_showActionDetails', false));
+  const [showActionDetails, setShowActionDetails] = useState(() => loadState('borging_showActionDetails', true));
+  const [categoryComments, setCategoryComments] = useState<Record<string, string>>(() => loadState('borging_categoryComments', {}));
+  const [showCommentInput, setShowCommentInput] = useState<Record<string, boolean>>({});
 
   // Save state to localStorage whenever it changes
   useEffect(() => { localStorage.setItem('borging_doeIk', JSON.stringify(checkedDoeIk)); }, [checkedDoeIk]);
@@ -29,6 +33,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('borging_agendaOrder', JSON.stringify(agendaOrder)); }, [agendaOrder]);
   useEffect(() => { localStorage.setItem('borging_actionDetails', JSON.stringify(actionDetails)); }, [actionDetails]);
   useEffect(() => { localStorage.setItem('borging_showActionDetails', JSON.stringify(showActionDetails)); }, [showActionDetails]);
+  useEffect(() => { localStorage.setItem('borging_categoryComments', JSON.stringify(categoryComments)); }, [categoryComments]);
 
   const handleActionDetailChange = (id: string, field: 'owner' | 'deadline', value: string) => {
     setActionDetails(prev => ({
@@ -44,103 +49,65 @@ export default function App() {
     }
   };
 
-  const handleExport = () => {
-    const content = document.getElementById('pdf-content');
+  const handleExport = async (elementId: string, filenamePrefix: string, title: string) => {
+    const content = document.getElementById(elementId);
     if (!content) return;
 
-    const clone = content.cloneNode(true) as HTMLElement;
-
-    // Replace inputs with spans
-    const originalInputs = content.querySelectorAll('input[type="text"]');
-    const clonedInputs = clone.querySelectorAll('input[type="text"]');
+    // Add a temporary class to format for PDF
+    content.classList.add('pdf-export-mode');
     
-    originalInputs.forEach((orig, index) => {
-      const el = orig as HTMLInputElement;
-      const cloneEl = clonedInputs[index] as HTMLInputElement;
-      const span = document.createElement('span');
-      span.className = 'inline-block border-b border-slate-300 bg-transparent px-1 min-w-[100px] text-sm font-medium';
-      span.textContent = el.value || '_________________';
-      cloneEl.parentNode?.replaceChild(span, cloneEl);
-    });
-
-    // Remove toggle checkbox
-    const toggleCheckbox = clone.querySelector('#toggle-action-details');
-    if (toggleCheckbox) {
-      toggleCheckbox.parentElement?.remove();
-    }
-
-    // Remove fixed heights and scrollbars so everything is fully visible
-    const scrollableDivs = clone.querySelectorAll('.overflow-y-auto, .h-\\[600px\\], .max-h-\\[600px\\]');
-    scrollableDivs.forEach(div => {
-      div.classList.remove('overflow-y-auto', 'h-[600px]', 'max-h-[600px]');
-    });
-
-    // Remove interactive elements that don't make sense in static HTML
-    const buttons = clone.querySelectorAll('button');
-    buttons.forEach(btn => {
-      if (btn.querySelector('.lucide-grip-vertical')) {
-        btn.remove(); // Remove drag handles
-      } else {
-        btn.style.pointerEvents = 'none'; // Disable other buttons
-      }
-    });
-
-    const htmlContent = `
-<!DOCTYPE html>
-<html lang="nl">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Borgingsrapport Examencommissie</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body {
-      background-color: #f8fafc;
-      color: #0f172a;
-      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-      padding: 2rem;
-    }
-    .report-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      background: #f8fafc; /* Match app background */
-    }
-    .cursor-grab { cursor: default !important; }
-    .lucide-grip-vertical { display: none !important; }
-    button { pointer-events: none !important; }
-    
-    /* Ensure charts render well */
-    .recharts-wrapper { margin: 0 auto; }
-    
-    /* Ensure lists and scrollable areas are fully visible */
-    .overflow-y-auto, .overflow-hidden, .h-\\[600px\\] {
-      overflow: visible !important;
-      height: auto !important;
-      max-height: none !important;
-    }
-  </style>
-</head>
-<body>
-  <div class="report-container">
-    <div class="text-center mb-12 bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-      <h1 class="text-4xl font-bold text-slate-900 mb-4">Borgingsrapport Examencommissie</h1>
+    // Add temporary title
+    const titleEl = document.createElement('div');
+    titleEl.className = 'text-center mb-8 bg-white p-8 rounded-2xl shadow-sm border border-slate-200';
+    titleEl.innerHTML = `
+      <h1 class="text-4xl font-bold text-slate-900 mb-4">${title}</h1>
       <p class="text-xl text-slate-500">Gegenereerd op ${new Date().toLocaleDateString('nl-NL', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-    </div>
-    ${clone.innerHTML}
-  </div>
-</body>
-</html>
     `;
+    content.insertBefore(titleEl, content.firstChild);
+    
+    try {
+      // Small delay to ensure DOM is updated
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `Borgingsrapport_${new Date().toISOString().split('T')[0]}.html`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+      const canvas = await html2canvas(content, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        windowWidth: 1200,
+        backgroundColor: '#f8fafc',
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      let heightLeft = pdfHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+      heightLeft -= pdf.internal.pageSize.getHeight();
+
+      while (heightLeft > 0) {
+        position = heightLeft - pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pdf.internal.pageSize.getHeight();
+      }
+
+      pdf.save(`${filenamePrefix}_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Er is een fout opgetreden bij het genereren van de PDF.');
+    } finally {
+      content.removeChild(titleEl);
+      content.classList.remove('pdf-export-mode');
+    }
   };
 
   const handleDoeIkChange = (id: string) => {
@@ -351,32 +318,27 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-20">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-slate-800">Borging door Examencommissies</h1>
-          <nav className="hidden md:flex space-x-8 items-center">
-            <a href="#theorie" className="text-sm font-medium text-slate-600 hover:text-slate-900">Theorie</a>
-            <a href="#zelfscan" className="text-sm font-medium text-slate-600 hover:text-slate-900">Zelfscan</a>
-            <a href="#resultaten" className="text-sm font-medium text-slate-600 hover:text-slate-900">Resultaten</a>
-            <button 
-              onClick={() => {
-                if(window.confirm('Weet u zeker dat u alle ingevulde gegevens wilt wissen?')) {
-                  localStorage.clear();
-                  window.location.reload();
-                }
-              }}
-              className="flex items-center gap-2 bg-white text-slate-600 border border-slate-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors print:hidden"
-            >
-              Wis Gegevens
-            </button>
-            <button 
-              onClick={handleExport}
-              className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors print:hidden"
-            >
-              <Download className="w-4 h-4" />
-              Exporteer
-            </button>
-          </nav>
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-4">
+          <h1 className="text-2xl font-bold text-slate-800 text-center">Borging a.d.h.v. De Vertrouwensboom</h1>
+          
+          <div className="relative flex items-center justify-center w-full">
+            <nav className="hidden md:flex space-x-8 items-center">
+              <a href="#theorie" className="text-sm font-medium text-slate-600 hover:text-slate-900">Theorie</a>
+              <a href="#zelfscan" className="text-sm font-medium text-slate-600 hover:text-slate-900">Zelfscan</a>
+              <a href="#resultaten" className="text-sm font-medium text-slate-600 hover:text-slate-900">Resultaten</a>
+              <a href="#agenda" className="text-sm font-medium text-slate-600 hover:text-slate-900">Agenda</a>
+            </nav>
+            <div className="absolute right-0 top-1/2 -translate-y-1/2">
+              <button 
+                onClick={() => handleExport('pdf-content', 'Borgingsrapport_Compleet', 'Borgingsrapport Examencommissie')}
+                className="hidden md:flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors print:hidden whitespace-nowrap"
+              >
+                <Download className="w-4 h-4" />
+                Exporteer Alles
+              </button>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -385,66 +347,90 @@ export default function App() {
         {/* Section 1: Theory */}
         <section id="theorie" className="space-y-8 scroll-mt-24">
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 md:p-12">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <div className="space-y-6">
-                <h2 className="text-3xl font-bold tracking-tight text-slate-900">Vertrouwensboom: Scan van het borgende instrumentarium</h2>
-                <div className="prose prose-slate prose-lg">
-                  <p>
-                    De Vertrouwensboom biedt Examencommissies een specifiek en praktisch overzicht van borgingsinstrumenten voor programmatisch toetsen. Het document beoogt examencommissies te voorzien van inspiratie bij de selectie van instrumenten om te komen tot een objectieve weergave van de kwaliteiten van het onderwijs- en toetssysteem. Het helpt grip te houden op kwaliteit, bijsturing te onderbouwen en het verlenen van een graad te onderschrijven.
-                  </p>
-                  <p>
-                    De term 'borging' is in de WHW niet gedefinieerd. Omdat een toetssysteem nooit 100% waterdicht is, is het zinvol de term goed te definiëren en in de context van het doel te plaatsen:
-                  </p>
-                  <ul className="list-none pl-0 space-y-3">
-                    <li className="flex items-start">
-                      <span className="text-blue-500 mr-2">→</span>
-                      <span><strong>Borgen</strong> is het objectief en systematisch vastleggen en aantoonbaar bewaken van de kwaliteit van toetsing door middel van maatregelen en procedures</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="text-blue-500 mr-2">→</span>
-                      <span><strong>Borging is succesvol</strong> als systematische meting van de kwaliteit van toetsing leidt tot het benodigde vertrouwen binnen de examencommissie om het verlenen van een graad te onderschrijven</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="text-blue-500 mr-2">→</span>
-                      <span><strong>Borgende instrumenten</strong> bieden een objectieve weergave van de kwaliteiten van het onderwijs- en toetssysteem, zodat de examencommissie een beredeneerd oordeel kan vormen over haar vertrouwen in dit systeem</span>
-                    </li>
-                  </ul>
-                  <p>
-                    Hieruit volgt dat niet de borging zelf het voornaamste uitgangspunt is, maar het vertrouwen dat de examencommissie eraan ontleent. Dit vertrouwen vormt de basis voor haar handelen. De commissie onderzoekt voortdurend haar mate van vertrouwen en grijpt in wanneer dit vertrouwen onvoldoende is of dreigt af te nemen. Daarom is het van belang om zicht te hebben op het volledige palet aan borgende instrumenten, zodat een integraal en objectief onderbouwd oordeel gevormd kan worden, waarop zowel vertrouwen als bijsturing kan berusten.
-                            </p>
-        </div>
-      </div>
-      <div className="bg-slate-100 rounded-xl p-4 flex flex-col items-center justify-center border border-slate-200">
-        <div className="relative w-full max-w-2xl mx-auto overflow-hidden rounded-lg shadow-md bg-white">
-          <img 
-            src="./vertrouwensboom.png" 
-            alt="Vertrouwensboom" 
-            className="w-full h-auto block"
-          />
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+            <div className="space-y-6">
+              <h2 className="text-3xl font-bold tracking-tight text-slate-900 text-center">Uitgangspunten van De Vertrouwensboom</h2>
+              <div className="prose prose-slate prose-lg max-w-none">
+                <p>
+                  De Vertrouwensboom biedt Examencommissies een specifiek en praktisch overzicht van borgingsinstrumenten voor programmatisch toetsen. Het document beoogt examencommissies te voorzien van inspiratie bij de selectie van instrumenten om te komen tot een objectieve weergave van de kwaliteiten van het onderwijs- en toetssysteem. Het helpt grip te houden op kwaliteit, bijsturing te onderbouwen en het verlenen van een graad te onderschrijven.
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch mt-8">
+                <div className="bg-slate-100 rounded-xl p-6 md:p-8 flex flex-col justify-start border border-slate-200">
+                  <h3 className="text-2xl font-bold text-slate-800 mb-6 text-center">Borging is...</h3>
+                  <div className="prose prose-slate prose-lg max-w-none">
+                    <p className="mb-6">
+                      De term 'borging' is in de WHW niet gedefinieerd. Omdat een toetssysteem nooit 100% waterdicht is, is het zinvol de term goed te definiëren en in de context van het doel te plaatsen:
+                    </p>
+                    <ul className="list-none pl-0 space-y-4">
+                      <li className="flex items-start">
+                        <span className="text-blue-500 mr-3 font-black text-xl leading-snug">→</span>
+                        <span><strong>Borgen</strong> is het objectief en systematisch vastleggen en aantoonbaar bewaken van de kwaliteit van toetsing door middel van maatregelen en procedures</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-blue-500 mr-3 font-black text-xl leading-snug">→</span>
+                        <span><strong>Borging is succesvol</strong> als systematische meting van de kwaliteit van toetsing leidt tot het benodigde vertrouwen binnen de examencommissie om het verlenen van een graad te onderschrijven</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-blue-500 mr-3 font-black text-xl leading-snug">→</span>
+                        <span><strong>Borgende instrumenten</strong> bieden een objectieve weergave van de kwaliteiten van het onderwijs- en toetssysteem, zodat de examencommissie een beredeneerd oordeel kan vormen over haar vertrouwen in dit systeem</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+                <div className="bg-slate-100 rounded-xl p-6 md:p-8 flex flex-col items-center justify-start border border-slate-200 min-h-[300px]">
+                  <h3 className="text-2xl font-bold text-slate-800 mb-6 text-center w-full">De Vertrouwensboom</h3>
+                  <div className="relative w-full aspect-square max-w-md mx-auto overflow-hidden rounded-lg shadow-md bg-white flex items-center justify-center mt-auto mb-auto">
+                    <img 
+                      src="/vertrouwensboom.png" 
+                      alt="Vertrouwensboom" 
+                      className="object-contain w-full h-full"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="prose prose-slate prose-lg max-w-none mt-8">
+                <p>
+                  Het voornaamste uitgangspunt is het vertrouwen dat de examencommissie aan borging ontleent. Dit vertrouwen vormt de basis voor haar handelen. De commissie onderzoekt voortdurend haar mate van vertrouwen en grijpt in wanneer dit vertrouwen onvoldoende is of dreigt af te nemen. Daarom is het van belang om zicht te hebben op het volledige palet aan borgende instrumenten, zodat een integraal en objectief onderbouwd oordeel gevormd kan worden, waarop zowel vertrouwen als bijsturing kan berusten.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* Section 2: Self-Scan */}
         <section id="zelfscan" className="space-y-8 scroll-mt-24">
           <div className="text-center max-w-3xl mx-auto space-y-4">
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900">Zelfscan Instrumentarium</h2>
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900">Zelfscan van het Instrumentarium</h2>
             <p className="text-lg text-slate-600">
-              Loop door de onderstaande categorieën en geef per instrument aan of u dit momenteel inzet ("Doen we") en of er actie vereist is ("Vergt actie"). Geef tevens per categorie uw vertrouwen aan op een schaal van 1 tot 5 sterren.
+              Geef aan welke instrumenten u hanteert en of actie vereist is (evt. door wie en wanneer).<br />
+              Geef per categorie uw vertrouwen aan en voeg evt. een opmerking toe.
             </p>
-            <div className="flex items-center justify-center gap-2 mt-4">
-              <input 
-                type="checkbox" 
-                id="toggle-action-details" 
-                checked={showActionDetails} 
-                onChange={(e) => setShowActionDetails(e.target.checked)}
-                className="w-4 h-4 text-slate-900 rounded border-slate-300 focus:ring-slate-900"
-              />
-              <label htmlFor="toggle-action-details" className="text-sm font-medium text-slate-700 cursor-pointer">
-                Optioneel: Actieplanning (eigenaar en deadline) inschakelen (dit kan ook achteraf)
-              </label>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-6">
+              <div className="flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  id="toggle-action-details" 
+                  checked={showActionDetails} 
+                  onChange={(e) => setShowActionDetails(e.target.checked)}
+                  className="w-4 h-4 text-slate-900 rounded border-slate-300 focus:ring-slate-900"
+                />
+                <label htmlFor="toggle-action-details" className="text-sm font-medium text-slate-700 cursor-pointer">
+                  Actieplanning t.b.v. borgingsagenda in-/uitschakelen
+                </label>
+              </div>
+              <button 
+                onClick={() => {
+                  if(window.confirm('Weet u zeker dat u alle ingevulde gegevens wilt wissen?')) {
+                    localStorage.clear();
+                    window.location.reload();
+                  }
+                }}
+                className="flex items-center gap-2 bg-white text-red-600 border border-red-200 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors print:hidden"
+              >
+                Wis Gegevens
+              </button>
             </div>
           </div>
 
@@ -490,14 +476,14 @@ export default function App() {
                           const isDoeIk = !!checkedDoeIk[instrument.id];
                           
                           const itemBgClass = isVergtActie 
-                            ? 'bg-amber-50 border-amber-300' 
+                            ? 'bg-amber-50 border-amber-300 hover:border-amber-500 hover:shadow-sm' 
                             : isDoeIk 
-                              ? 'bg-emerald-50 border-emerald-300' 
-                              : 'bg-white/60 border-white/40 hover:bg-white/90 hover:border-white/60';
+                              ? 'bg-emerald-50 border-emerald-300 hover:border-emerald-500 hover:shadow-sm' 
+                              : 'bg-white/60 border-slate-200 hover:bg-white/90 hover:border-slate-400 hover:shadow-sm';
 
                           return (
-                            <div key={instrument.id} className="flex flex-col gap-2">
-                              <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border transition-colors ${itemBgClass}`}>
+                            <div key={instrument.id} className={`flex flex-col gap-0 rounded-lg border transition-all duration-200 ${itemBgClass}`}>
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3">
                                 <div className="flex-1 text-sm text-slate-800 leading-snug">
                                   {instrument.text}
                                 </div>
@@ -526,25 +512,25 @@ export default function App() {
                               </div>
                               
                               {isVergtActie && showActionDetails && (
-                                <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 flex flex-col sm:flex-row gap-3 print:bg-transparent print:border-none print:p-0 print:mt-1 print-break-avoid">
+                                <div className="flex flex-col sm:flex-row gap-4 px-3 pb-3 pt-2 border-t border-black/5 print:border-none print:pt-0">
                                   <div className="flex-1 flex items-center gap-2">
-                                    <User className="w-4 h-4 text-amber-600 print:text-slate-400" />
+                                    <User className="w-4 h-4 text-slate-500" />
                                     <input 
                                       type="text" 
                                       placeholder="Eigenaar..." 
                                       value={actionDetails[instrument.id]?.owner || ''}
                                       onChange={(e) => handleActionDetailChange(instrument.id, 'owner', e.target.value)}
-                                      className="text-sm bg-white border border-amber-200 rounded px-2 py-1 w-full focus:outline-none focus:ring-2 focus:ring-amber-500 print:border-0 print:border-b print:border-slate-300 print:bg-transparent print:rounded-none print:px-0"
+                                      className="text-sm bg-transparent border-b border-slate-300 px-1 py-1 w-full focus:outline-none focus:border-slate-500"
                                     />
                                   </div>
                                   <div className="flex-1 flex items-center gap-2">
-                                    <Calendar className="w-4 h-4 text-amber-600 print:text-slate-400" />
+                                    <Calendar className="w-4 h-4 text-slate-500" />
                                     <input 
                                       type="text" 
                                       placeholder="Deadline (bijv. Q3 2026)..." 
                                       value={actionDetails[instrument.id]?.deadline || ''}
                                       onChange={(e) => handleActionDetailChange(instrument.id, 'deadline', e.target.value)}
-                                      className="text-sm bg-white border border-amber-200 rounded px-2 py-1 w-full focus:outline-none focus:ring-2 focus:ring-amber-500 print:border-0 print:border-b print:border-slate-300 print:bg-transparent print:rounded-none print:px-0"
+                                      className="text-sm bg-transparent border-b border-slate-300 px-1 py-1 w-full focus:outline-none focus:border-slate-500"
                                     />
                                   </div>
                                 </div>
@@ -555,130 +541,188 @@ export default function App() {
                       </div>
                     </div>
                   ))}
+                  
+                  {/* Category Comments */}
+                  <div className="px-4 py-3 bg-white/40 border-t border-black/5">
+                    {!(showCommentInput[category.id] || categoryComments[category.id]) ? (
+                      <button 
+                        onClick={() => setShowCommentInput(prev => ({ ...prev, [category.id]: true }))}
+                        className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 font-medium transition-colors"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        Voeg opmerking toe
+                      </button>
+                    ) : (
+                      <div className="flex items-start gap-2">
+                        <MessageSquare className="w-4 h-4 text-slate-400 mt-1 shrink-0" />
+                        <textarea
+                          value={categoryComments[category.id] || ''}
+                          onChange={(e) => setCategoryComments(prev => ({ ...prev, [category.id]: e.target.value }))}
+                          placeholder={`Opmerkingen voor ${category.name}...`}
+                          className="w-full text-sm bg-white/80 border border-slate-200 rounded-lg px-3 py-2 min-h-[80px] focus:outline-none focus:ring-2 focus:ring-slate-400 resize-y"
+                          autoFocus={!categoryComments[category.id]}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         </section>
 
-        {/* Section 3: Results */}
+        {/* Section 3: Resultaten */}
         <section id="resultaten" className="space-y-8 scroll-mt-24 pt-8 border-t border-slate-200">
           <div className="text-center max-w-3xl mx-auto space-y-4">
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900">Resultaten & Agenda</h2>
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900">Resultaten</h2>
             <p className="text-lg text-slate-600">
-              Bekijk hieronder de visuele weergave van uw zelfscan, de openstaande aandachtspunten en uw geprioriteerde borgingsagenda.
+              Visuele weergave van uw zelfscan en de borgingsgraad per categorie.
             </p>
+            <div className="flex justify-center mt-4">
+              <button 
+                onClick={() => handleExport('resultaten-content', 'Resultaten_Zelfscan', 'Resultaten Zelfscan')}
+                className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors print:hidden"
+              >
+                <Download className="w-4 h-4" />
+                Exporteer Resultaten
+              </button>
+            </div>
           </div>
 
-          {/* Infographic: Totaalbeeld */}
-          <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
-            <h3 className="text-xl font-bold text-slate-800 mb-6 text-center">Totaalbeeld Borging</h3>
-            <div id="export-totaalbeeld" className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200 text-center shadow-sm flex flex-col justify-center">
-                <div className="text-4xl font-black text-emerald-600">{totalDoeIk} <span className="text-2xl text-emerald-400">/ {totalInstruments}</span></div>
-                <div className="text-xs font-bold text-emerald-700 uppercase tracking-wider mt-2">Ingezet ("Doen we")</div>
+          <div id="resultaten-content" className="space-y-8 bg-slate-50 p-2 -m-2 rounded-xl">
+            {/* Infographic: Totaalbeeld */}
+            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
+              <h3 className="text-xl font-bold text-slate-800 mb-6 text-center">Totaalbeeld Borging</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200 text-center shadow-sm flex flex-col justify-center">
+                  <div className="text-4xl font-black text-emerald-600">{totalDoeIk} <span className="text-2xl text-emerald-400">/ {totalInstruments}</span></div>
+                  <div className="text-xs font-bold text-emerald-700 uppercase tracking-wider mt-2">Ingezet ("Doen we")</div>
+                </div>
+                <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 text-center shadow-sm flex flex-col justify-center">
+                  <div className="text-4xl font-black text-amber-600">{totalVergtActie}</div>
+                  <div className="text-xs font-bold text-amber-700 uppercase tracking-wider mt-2">Vergt Actie</div>
+                </div>
+                <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 text-center shadow-sm flex flex-col justify-center">
+                  <div className="text-4xl font-black text-blue-600">{avgConfidence} <span className="text-lg text-blue-400">/ 5</span></div>
+                  <div className="text-xs font-bold text-blue-700 uppercase tracking-wider mt-2">Gem. Vertrouwen</div>
+                  <div className="text-xs text-blue-600 mt-2 font-medium">Min: {minConf} | Max: {maxConf}</div>
+                </div>
               </div>
-              <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 text-center shadow-sm flex flex-col justify-center">
-                <div className="text-4xl font-black text-amber-600">{totalVergtActie}</div>
-                <div className="text-xs font-bold text-amber-700 uppercase tracking-wider mt-2">Vergt Actie</div>
-              </div>
-              <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 text-center shadow-sm flex flex-col justify-center">
-                <div className="text-4xl font-black text-blue-600">{avgConfidence} <span className="text-lg text-blue-400">/ 5</span></div>
-                <div className="text-xs font-bold text-blue-700 uppercase tracking-wider mt-2">Gem. Vertrouwen</div>
-                <div className="text-xs text-blue-600 mt-2 font-medium">Min: {minConf} | Max: {maxConf}</div>
-              </div>
-            </div>
-            
-            <div id="export-borgingsgraad" className="space-y-3 mt-8">
-              <h4 className="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2">Borgingsgraad per Categorie</h4>
-              <div className="flex flex-col gap-2">
-                {categories.map(category => {
-                  const catInstruments = category.elements.flatMap(e => e.instruments);
-                  const catTotal = catInstruments.length;
-                  const catDoeIk = catInstruments.filter(inst => checkedDoeIk[inst.id]).length;
-                  const catGraad = Math.round((catDoeIk / catTotal) * 100) || 0;
-                  const verbeterActies = catInstruments.filter(inst => !checkedDoeIk[inst.id]);
-                  const hue = Math.round((catGraad / 100) * 120);
-                  const barColor = `hsl(${hue}, 80%, 45%)`;
+              
+              <div className="space-y-3 mt-8">
+                <h4 className="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2">Borgingsgraad per Categorie</h4>
+                <div className="flex flex-col gap-2">
+                  {categories.map(category => {
+                    const catInstruments = category.elements.flatMap(e => e.instruments);
+                    const catTotal = catInstruments.length;
+                    const catDoeIk = catInstruments.filter(inst => checkedDoeIk[inst.id]).length;
+                    const catGraad = Math.round((catDoeIk / catTotal) * 100) || 0;
+                    const verbeterActies = catInstruments.filter(inst => !checkedDoeIk[inst.id]);
+                    const hue = Math.round((catGraad / 100) * 120);
+                    const barColor = `hsl(${hue}, 80%, 45%)`;
 
-                  return (
-                    <div key={category.id} className={`${category.colorClass} bg-opacity-40 p-2.5 rounded-lg border border-slate-200 shadow-sm`}>
-                      <div className="flex items-center gap-3">
-                        {catGraad === 100 ? (
-                          <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-                        ) : (
-                          <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
-                        )}
-                        <span className={`text-sm font-bold ${category.textColorClass} w-32 sm:w-48 shrink-0 leading-tight`}>
-                          {category.name}
-                        </span>
-                        <div className="flex-1 flex items-center gap-3">
-                          <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
-                            <div className="h-full transition-all duration-1000" style={{ width: `${catGraad}%`, backgroundColor: barColor }}></div>
+                    return (
+                      <div key={category.id} className={`${category.colorClass} bg-opacity-40 p-2.5 rounded-lg border border-slate-200 shadow-sm`}>
+                        <div className="flex items-center gap-3">
+                          {catGraad === 100 ? (
+                            <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                          ) : (
+                            <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                          )}
+                          <span className={`text-sm font-bold ${category.textColorClass} w-32 sm:w-48 shrink-0 leading-tight`}>
+                            {category.name}
+                          </span>
+                          <div className="flex-1 flex items-center gap-3">
+                            <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
+                              <div className="h-full transition-all duration-1000" style={{ width: `${catGraad}%`, backgroundColor: barColor }}></div>
+                            </div>
+                            <span className="text-sm font-black text-slate-700 w-10 text-right">{catGraad}%</span>
                           </div>
-                          <span className="text-sm font-black text-slate-700 w-10 text-right">{catGraad}%</span>
                         </div>
+                        
+                        {verbeterActies.length > 0 && (
+                          <div className="text-xs text-slate-600 leading-snug pl-8 mt-2">
+                            <span className="font-bold text-slate-500 uppercase tracking-wider">Doen we niet:</span>
+                            <ul className="list-disc pl-4 mt-1 space-y-1">
+                              {verbeterActies.map(inst => (
+                                <li key={inst.id}>{inst.text}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                       </div>
-                      
-                      {verbeterActies.length > 0 && (
-                        <div className="text-xs text-slate-600 leading-snug pl-8 mt-1.5">
-                          <span className="font-bold text-slate-500 uppercase tracking-wider mr-1">Doen we niet:</span>
-                          {verbeterActies.map(inst => inst.text).join(' • ')}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Spider Chart */}
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
+                <h3 className="text-lg font-bold text-slate-800 mb-6 text-center">Inzet van Instrumenten (%)</h3>
+                <div className="flex-1 min-h-[350px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
+                      <PolarGrid stroke="#e2e8f0" />
+                      <PolarAngleAxis dataKey="subject" tick={<CustomTick />} />
+                      <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                      <Radar name="Inzet (%)" dataKey="A" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} isAnimationActive={false} dot={<CustomDot />} />
+                      <Tooltip formatter={(value) => [`${value}%`, 'Inzet']} />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Bar Chart */}
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
+                <h3 className="text-lg font-bold text-slate-800 mb-6 text-center">Mate van vertrouwen (%)</h3>
+                <div className="flex-1 min-h-[350px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={barData} margin={{ top: 20, right: 30, left: 0, bottom: 40 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis 
+                        dataKey="name" 
+                        angle={-45} 
+                        textAnchor="end" 
+                        height={80} 
+                        interval={0} 
+                        tick={{ fill: '#475569', fontSize: 11 }} 
+                      />
+                      <YAxis domain={[0, 100]} ticks={[0, 20, 40, 60, 80, 100]} tick={{ fill: '#475569' }} />
+                      <Tooltip cursor={{fill: '#f8fafc'}} formatter={(value) => [`${value}%`, 'Vertrouwen']} />
+                      <Bar dataKey="Vertrouwen" radius={[4, 4, 0, 0]} isAnimationActive={false} onClick={(data) => scrollToCategory(data.id)} className="cursor-pointer hover:opacity-80 transition-opacity">
+                        {barData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </div>
           </div>
+        </section>
 
-          <div id="export-charts" className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Spider Chart */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
-              <h3 className="text-lg font-bold text-slate-800 mb-6 text-center">Inzet Instrumenten ("Doen we")</h3>
-              <div className="flex-1 min-h-[350px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-                    <PolarGrid stroke="#e2e8f0" />
-                    <PolarAngleAxis dataKey="subject" tick={<CustomTick />} />
-                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                    <Radar name="Inzet (%)" dataKey="A" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} isAnimationActive={false} dot={<CustomDot />} />
-                    <Tooltip formatter={(value) => [`${value}%`, 'Inzet']} />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Bar Chart */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
-              <h3 className="text-lg font-bold text-slate-800 mb-6 text-center">Mate van vertrouwen (%)</h3>
-              <div className="flex-1 min-h-[350px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={barData} margin={{ top: 20, right: 30, left: 0, bottom: 40 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                    <XAxis 
-                      dataKey="name" 
-                      angle={-45} 
-                      textAnchor="end" 
-                      height={80} 
-                      interval={0} 
-                      tick={{ fill: '#475569', fontSize: 11 }} 
-                    />
-                    <YAxis domain={[0, 100]} ticks={[0, 20, 40, 60, 80, 100]} tick={{ fill: '#475569' }} />
-                    <Tooltip cursor={{fill: '#f8fafc'}} formatter={(value) => [`${value}%`, 'Vertrouwen']} />
-                    <Bar dataKey="Vertrouwen" radius={[4, 4, 0, 0]} isAnimationActive={false} onClick={(data) => scrollToCategory(data.id)} className="cursor-pointer hover:opacity-80 transition-opacity">
-                      {barData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+        {/* Section 4: Agenda */}
+        <section id="agenda" className="space-y-8 scroll-mt-24 pt-8 border-t border-slate-200">
+          <div className="text-center max-w-3xl mx-auto space-y-4">
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900">Agenda</h2>
+            <p className="text-lg text-slate-600">
+              Overzicht van aandachtspunten en uw geprioriteerde borgingsagenda.
+            </p>
+            <div className="flex justify-center mt-4">
+              <button 
+                onClick={() => handleExport('agenda-content', 'Borgingsagenda', 'Borgingsagenda')}
+                className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors print:hidden"
+              >
+                <Download className="w-4 h-4" />
+                Exporteer Agenda
+              </button>
             </div>
           </div>
 
-          <div id="export-lists" className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div id="agenda-content" className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-slate-50 p-2 -m-2 rounded-xl">
             {/* Aandachtspunten */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[600px]">
               <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
@@ -772,6 +816,24 @@ export default function App() {
           </div>
         </section>
       </main>
+
+      {/* Colofon */}
+      <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-8 border-t border-slate-200 text-center text-xs text-slate-500 print:mt-8 print:py-4">
+        <p className="mb-1">
+          <strong>Auteur:</strong> Tim Gerbrands &nbsp;|&nbsp; <strong>Laatst bijgewerkt:</strong> 27 maart 2026
+        </p>
+        <p>
+          <strong>Publicatie over De Vertrouwensboom:</strong>{' '}
+          <a 
+            href="https://e-xamens.nl/februari-2026-01/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+          >
+            e-xamens.nl/februari-2026-01/
+          </a>
+        </p>
+      </footer>
     </div>
   );
 }
