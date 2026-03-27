@@ -2,8 +2,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { categories, Category, Instrument } from './data';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell, ReferenceLine } from 'recharts';
 import { ArrowUp, ArrowDown, CheckCircle2, AlertCircle, Info, GripVertical, Download, Star, User, Calendar, MessageSquare } from 'lucide-react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 // Helper to load state from localStorage
 const loadState = <T,>(key: string, defaultValue: T): T => {
@@ -51,65 +49,24 @@ export default function App() {
     }
   };
 
-  const handleExport = async (elementId: string, filenamePrefix: string, title: string) => {
-    const content = document.getElementById(elementId);
-    if (!content) return;
+  const handlePrintAll = () => {
+    window.print();
+  };
 
-    // Add a temporary class to format for PDF
-    content.classList.add('pdf-export-mode');
-    
-    // Add temporary title
-    const titleEl = document.createElement('div');
-    titleEl.className = 'text-center mb-8 bg-white p-8 rounded-2xl shadow-sm border border-slate-200';
-    titleEl.innerHTML = `
-      <h1 class="text-4xl font-bold text-slate-900 mb-4">${title}</h1>
-      <p class="text-xl text-slate-500">Gegenereerd op ${new Date().toLocaleDateString('nl-NL', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-    `;
-    content.insertBefore(titleEl, content.firstChild);
-    
-    try {
-      // Small delay to ensure DOM is updated
-      await new Promise(resolve => setTimeout(resolve, 100));
+  const handlePrintSection = (sectionId: string) => {
+    const section = document.getElementById(sectionId);
+    if (!section) return;
 
-      const canvas = await html2canvas(content, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        windowWidth: 1200,
-        backgroundColor: '#f8fafc',
-      });
+    document.body.classList.add('printing-specific-section');
+    section.classList.add('print-active');
 
-      const Data = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      let heightLeft = pdfHeight;
-      let position = 0;
-
-      pdf.addImage(Data, 'PNG', 0, position, pdfWidth, pdfHeight);
-      heightLeft -= pdf.internal.pageSize.getHeight();
-
-      while (heightLeft > 0) {
-        position = heightLeft - pdfHeight;
-        pdf.addPage();
-        pdf.addImage(Data, 'PNG', 0, position, pdfWidth, pdfHeight);
-        heightLeft -= pdf.internal.pageSize.getHeight();
-      }
-
-      pdf.save(`${filenamePrefix}_${new Date().toISOString().split('T')[0]}.pdf`);
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Er is een fout opgetreden bij het genereren van de PDF.');
-    } finally {
-      content.removeChild(titleEl);
-      content.classList.remove('pdf-export-mode');
-    }
+    // Small delay to let CSS apply before opening print dialog
+    setTimeout(() => {
+      window.print();
+      // Cleanup after print dialog closes
+      document.body.classList.remove('printing-specific-section');
+      section.classList.remove('print-active');
+    }, 100);
   };
 
   const handleDoeIkChange = (id: string) => {
@@ -358,7 +315,7 @@ export default function App() {
             </nav>
             <div className="absolute right-0 top-1/2 -translate-y-1/2">
               <button 
-                onClick={() => handleExport('pdf-content', 'Borgingsrapport_Compleet', 'Borgingsrapport Examencommissie')}
+                onClick={handlePrintAll}
                 className="hidden md:flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors print:hidden whitespace-nowrap"
               >
                 <Download className="w-4 h-4" />
@@ -620,7 +577,7 @@ export default function App() {
             </p>
             <div className="flex justify-center mt-4">
               <button 
-                onClick={() => handleExport('resultaten-content', 'Resultaten_Zelfscan', 'Resultaten Zelfscan')}
+                onClick={() => handlePrintSection('resultaten')}
                 className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors print:hidden"
               >
                 <Download className="w-4 h-4" />
@@ -754,7 +711,7 @@ export default function App() {
             </p>
             <div className="flex justify-center mt-4">
               <button 
-                onClick={() => handleExport('agenda-content', 'Borgingsagenda', 'Borgingsagenda')}
+                onClick={() => handlePrintSection('agenda')}
                 className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors print:hidden"
               >
                 <Download className="w-4 h-4" />
