@@ -433,7 +433,7 @@ export default function App() {
                           <button
                             key={rating}
                             onClick={() => handleConfidenceChange(category.id, rating)}
-                            className="p-1 transition-all duration-200 hover:scale-125 focus:outline-none group"
+                            className="print-keep-button p-1 transition-all duration-200 hover:scale-125 focus:outline-none group"
                           >
                             <Star 
                               className={`w-6 h-6 transition-colors duration-200 ${isSelected ? 'fill-amber-400 text-amber-500 group-hover:fill-amber-500 group-hover:text-amber-600' : 'fill-transparent text-slate-300 group-hover:text-amber-300 group-hover:fill-amber-100'}`} 
@@ -477,7 +477,7 @@ export default function App() {
                                 <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
                                   <button
                                     onClick={() => handleDoeIkChange(instrument.id)}
-                                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all border ${
+                                    className={`print-keep-button px-3 py-1.5 rounded-md text-xs font-bold transition-all border ${
                                       isDoeIk 
                                         ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm' 
                                         : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
@@ -487,7 +487,7 @@ export default function App() {
                                   </button>
                                   <button
                                     onClick={() => handleVergtActieChange(instrument.id)}
-                                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all border ${
+                                    className={`print-keep-button px-3 py-1.5 rounded-md text-xs font-bold transition-all border ${
                                       isVergtActie 
                                         ? 'bg-amber-500 text-white border-amber-600 shadow-sm' 
                                         : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
@@ -497,7 +497,7 @@ export default function App() {
                                   </button>
                                   <button
                                     onClick={() => handleNietNodigChange(instrument.id)}
-                                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all border ${
+                                    className={`print-keep-button px-3 py-1.5 rounded-md text-xs font-bold transition-all border ${
                                       isNietNodig 
                                         ? 'bg-slate-500 text-white border-slate-600 shadow-sm' 
                                         : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
@@ -544,7 +544,7 @@ export default function App() {
                     {!(showCommentInput[category.id] || categoryComments[category.id]) ? (
                       <button 
                         onClick={() => setShowCommentInput(prev => ({ ...prev, [category.id]: true }))}
-                        className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 font-medium transition-colors"
+                        className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 font-medium transition-colors print:hidden"
                       >
                         <MessageSquare className="w-4 h-4" />
                         Voeg opmerking toe
@@ -722,7 +722,7 @@ export default function App() {
 
           <div id="agenda-content" className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-slate-50 p-2 -m-2 rounded-xl">
             {/* Aandachtspunten */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[600px]">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full">
               <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
                 <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                   <AlertCircle className="w-5 h-5 text-amber-500" />
@@ -730,7 +730,7 @@ export default function App() {
                 </h3>
                 <p className="text-sm text-slate-500 mt-1">Instrumenten die momenteel niet worden ingezet (geen "Doen we").</p>
               </div>
-              <div className="p-6 overflow-y-auto flex-1 bg-slate-50/50">
+              <div className="p-6 flex-1 bg-slate-50/50">
                 {aandachtspunten.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-slate-400">
                     <CheckCircle2 className="w-12 h-12 mb-2 text-emerald-400" />
@@ -755,7 +755,7 @@ export default function App() {
             </div>
 
             {/* Borgingsagenda */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[600px]">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full">
               <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
                 <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-emerald-500" />
@@ -763,7 +763,7 @@ export default function App() {
                 </h3>
                 <p className="text-sm text-slate-500 mt-1">Instrumenten die actie vergen. Wijzig de volgorde om prioriteit aan te geven.</p>
               </div>
-              <div className="p-6 overflow-y-auto flex-1 bg-slate-50/50">
+              <div className="p-6 flex-1 bg-slate-50/50">
                 {borgingsagenda.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-slate-400">
                     <Info className="w-12 h-12 mb-2 opacity-50" />

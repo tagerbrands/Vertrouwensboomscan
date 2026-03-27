@@ -15,6 +15,28 @@
     background-color: white !important;
   }
 
+  /* Voorkom afsnijden */
+  table, tr, .recharts-wrapper, .bg-white.rounded-2xl, .bg-white.rounded-xl, li, .print-break-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Nieuwe pagina's */
+  #resultaten, #agenda {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+
+  /* Tabel-koppen herhalen */
+  thead {
+    display: table-header-group !important;
+  }
+
+  /* Interactieve elementen verbergen */
+  button:not(.print-keep-button), nav, .recharts-tooltip-wrapper {
+    display: none !important;
+  }
+
   /* When printing a specific section, hide everything else */
   body.printing-specific-section header,
   body.printing-specific-section footer,
@@ -29,13 +51,8 @@
     margin: 0 !important;
     padding: 0 !important;
   }
-
-  .print-break-avoid {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
   
   @page {
-    margin: 1.5cm;
+    margin: 2cm;
   }
 }
