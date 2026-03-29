@@ -114,11 +114,11 @@ export default function App() {
 
     try {
       if (spiderEl) {
-        const canvas = await captureWithTimeout(spiderEl, { scale: 2, useCORS: true, logging: false }, 3000);
+        const canvas = await captureWithTimeout(spiderEl, { scale: 2, useCORS: true, logging: false }, 8000);
         spiderImg = canvas.toDataURL('image/png');
       }
       if (barEl) {
-        const canvas = await captureWithTimeout(barEl, { scale: 2, useCORS: true, logging: false }, 3000);
+        const canvas = await captureWithTimeout(barEl, { scale: 2, useCORS: true, logging: false }, 8000);
         barImg = canvas.toDataURL('image/png');
       }
     } catch (e) {
@@ -154,28 +154,57 @@ export default function App() {
   ${reportType === 'full' ? `
   <!-- Page 1: Cover -->
   <div class="h-screen flex flex-col items-center justify-center relative p-8 text-center">
-    <h1 class="text-5xl font-extrabold text-slate-900 mb-8">Borging a.d.h.v. De Vertrouwensboom</h1>
-    <img src="/vertrouwensboom.png" alt="De Vertrouwensboom" class="max-w-md w-full object-contain mb-8" onerror="this.style.display='none'" />
+    <h1 class="text-5xl font-extrabold text-slate-900 mb-8">Borgen middels De Vertrouwensboom</h1>
+    <img src="./vertrouwensboom.png" alt="De Vertrouwensboom" class="max-w-md w-full object-contain mb-8" onerror="this.style.display='none'" />
     <h2 class="text-2xl font-medium text-slate-600">Een zelfscan van het borgende instrumentarium</h2>
     <div class="absolute bottom-12 text-slate-400 font-medium">${new Date().toLocaleDateString('nl-NL', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
   </div>
 
   <!-- Page 2: Theorie -->
   <div class="page-break p-8">
-    <h2 class="text-3xl font-bold text-slate-900 mb-6 border-b-2 border-slate-200 pb-2">Uitgangspunten van De Vertrouwensboom</h2>
-    <div class="prose prose-slate max-w-none">
-      <p class="mb-4">De Vertrouwensboom is een metafoor voor het bouwen en onderhouden van vertrouwen binnen en buiten de organisatie. Het model gaat ervan uit dat vertrouwen moet groeien en geworteld moet zijn in stevige fundamenten.</p>
-      <p class="mb-4"><strong>Wortels (Fundament):</strong> Dit zijn de kernwaarden, de visie en de missie van de organisatie. Zonder sterke wortels kan de boom niet groeien of stormen doorstaan.</p>
-      <p class="mb-4"><strong>Stam (Organisatie):</strong> De structuur, processen en leiderschap die de organisatie overeind houden. Een stevige stam zorgt voor stabiliteit en richting.</p>
-      <p class="mb-4"><strong>Takken (Verbinding):</strong> De relaties met stakeholders, zowel intern (medewerkers) als extern (klanten, partners, maatschappij). Vertrouwen reikt uit naar de omgeving.</p>
-      <p class="mb-4"><strong>Bladeren (Zichtbaarheid):</strong> De dagelijkse acties, communicatie en transparantie. Dit is wat de buitenwereld ziet en ervaart.</p>
-      <h3 class="text-xl font-bold mt-6 mb-3">Borging is...</h3>
-      <ul class="list-disc pl-5 space-y-2">
-        <li>Het structureel inbedden van afspraken, processen en gedrag.</li>
-        <li>Zorgen dat wat we beloven, ook daadwerkelijk gebeurt en blijft gebeuren.</li>
-        <li>Niet eenmalig, maar een continu proces van evalueren en bijsturen.</li>
-        <li>Essentieel voor het behouden en versterken van vertrouwen.</li>
-      </ul>
+    <h2 class="text-3xl font-bold text-slate-900 mb-6 border-b-2 border-slate-200 pb-2 text-center">Uitgangspunten van De Vertrouwensboom</h2>
+    <div class="prose prose-slate prose-lg max-w-none text-slate-700">
+      <p class="mb-8">
+        De Vertrouwensboom biedt Examencommissies een specifiek en praktisch overzicht van borgingsinstrumenten voor programmatisch toetsen. Het document beoogt examencommissies te voorzien van inspiratie bij de selectie van instrumenten om te komen tot een objectieve weergave van de kwaliteiten van het onderwijs- en toetssysteem. Het helpt grip te houden op kwaliteit, bijsturing te onderbouwen en het verlenen van een graad te onderschrijven.
+      </p>
+      
+      <div class="grid grid-cols-2 gap-8 items-stretch mt-8">
+        <div class="bg-slate-100 rounded-xl p-6 flex flex-col justify-start border border-slate-200">
+          <h3 class="text-2xl font-bold text-slate-800 mb-6 text-center">Borging is...</h3>
+          <ul class="space-y-4 list-none pl-0">
+            <li class="flex items-start">
+              <span class="text-emerald-500 mr-3 mt-1 text-xl">✓</span>
+              <span>Het structureel inbedden van afspraken, processen en gedrag.</span>
+            </li>
+            <li class="flex items-start">
+              <span class="text-emerald-500 mr-3 mt-1 text-xl">✓</span>
+              <span>Zorgen dat wat we beloven, ook daadwerkelijk gebeurt en blijft gebeuren.</span>
+            </li>
+            <li class="flex items-start">
+              <span class="text-emerald-500 mr-3 mt-1 text-xl">✓</span>
+              <span>Een continu proces van monitoren, evalueren en verbeteren.</span>
+            </li>
+          </ul>
+        </div>
+        
+        <div class="bg-slate-100 rounded-xl p-6 flex flex-col justify-start border border-slate-200">
+          <h3 class="text-2xl font-bold text-slate-800 mb-6 text-center">Borging is niet...</h3>
+          <ul class="space-y-4 list-none pl-0">
+            <li class="flex items-start">
+              <span class="text-rose-500 mr-3 mt-1 text-xl">✗</span>
+              <span>Een eenmalige afvinklijst of administratieve last.</span>
+            </li>
+            <li class="flex items-start">
+              <span class="text-rose-500 mr-3 mt-1 text-xl">✗</span>
+              <span>Een garantie dat er nooit iets misgaat, maar wel dat we ervan leren.</span>
+            </li>
+            <li class="flex items-start">
+              <span class="text-rose-500 mr-3 mt-1 text-xl">✗</span>
+              <span>Een statisch document dat in een la verdwijnt.</span>
+            </li>
+          </ul>
+        </div>
+      </div>
     </div>
   </div>
   ` : ''}
@@ -271,7 +300,7 @@ export default function App() {
       ` : '<p class="text-slate-500 italic">Geen actiepunten geselecteerd.</p>'}
     </div>
 
-    <div>
+    <div class="page-break">
       <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
         <svg class="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
         Aandachtspunten (Niet ingezet)
@@ -323,8 +352,8 @@ export default function App() {
                 let statusHtml = '';
                 if (isNietNodig) statusHtml = '<span class="px-2 py-1 bg-slate-200 text-slate-700 text-xs rounded font-medium">Niet nodig</span>';
                 else {
-                  if (isDoeIk) statusHtml += '<span class="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs rounded font-medium mr-1">Doen we</span>';
-                  if (isVergtActie) statusHtml += '<span class="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded font-medium">Vergt actie</span>';
+                  if (isDoeIk) statusHtml += '<div class="mb-1"><span class="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs rounded font-medium inline-block whitespace-nowrap">Doen we</span></div>';
+                  if (isVergtActie) statusHtml += '<div><span class="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded font-medium inline-block whitespace-nowrap">Vergt actie</span></div>';
                   if (!isDoeIk && !isVergtActie) statusHtml = '<span class="text-slate-400 text-xs italic">-</span>';
                 }
 
@@ -348,6 +377,14 @@ export default function App() {
     `).join('')}
   </div>
   ` : ''}
+
+  <!-- Footer / Colofon -->
+  <div class="mt-16 pt-8 border-t border-slate-200 text-center text-sm text-slate-500 pb-8">
+    <p class="mb-2">De Vertrouwensboom, Tim Gerbrands, 2025</p>
+    <a href="https://www.linkedin.com/pulse/de-vertrouwensboom-tim-gerbrands-msc-m-ed-1e/" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">
+      Lees de publicatie op LinkedIn
+    </a>
+  </div>
 
   <script>
     setTimeout(() => {
@@ -599,7 +636,7 @@ export default function App() {
       {/* Header */}
       <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10 shadow-sm py-4 transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-4">
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-white text-center">Borging a.d.h.v. De Vertrouwensboom</h1>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-white text-center">Borgen middels De Vertrouwensboom</h1>
           
           <div className="relative flex items-center justify-center w-full">
             <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center print:hidden">
@@ -967,7 +1004,7 @@ export default function App() {
               {/* Spider Chart */}
               <div id="spider-chart-container" className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col transition-colors">
                 <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 text-center">Inzet van Instrumenten (%)</h3>
-                <div className="flex-1 min-h-[350px]">
+                <div className="w-full h-[350px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
                       <PolarGrid stroke={isDarkMode ? '#334155' : '#e2e8f0'} />
@@ -986,7 +1023,7 @@ export default function App() {
               {/* Bar Chart */}
               <div id="bar-chart-container" className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col transition-colors">
                 <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 text-center">Mate van vertrouwen (%)</h3>
-                <div className="flex-1 min-h-[350px]">
+                <div className="w-full h-[350px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={barData} margin={{ top: 20, right: 30, left: 0, bottom: 40 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#334155' : '#e2e8f0'} />
