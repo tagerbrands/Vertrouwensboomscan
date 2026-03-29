@@ -339,9 +339,9 @@ export default function App() {
             ).join('')}
           </tbody>
         </table>
-        ${notes[category.id] ? `
+        ${categoryComments[category.id] ? `
           <div class="bg-yellow-50 p-3 rounded border border-yellow-200 text-sm">
-            <strong>Opmerking:</strong> ${notes[category.id]}
+            <strong>Opmerking:</strong> ${categoryComments[category.id]}
           </div>
         ` : ''}
       </div>
@@ -554,6 +554,7 @@ export default function App() {
   const totalInstruments = categories.reduce((acc, cat) => acc + cat.elements.reduce((eAcc, el) => eAcc + el.instruments.filter(i => !checkedNietNodig[i.id]).length, 0), 0);
   const totalDoeIk = Object.values(checkedDoeIk).filter(Boolean).length;
   const totalVergtActie = Object.values(checkedVergtActie).filter(Boolean).length;
+  const totalNietNodig = Object.values(checkedNietNodig).filter(Boolean).length;
   
   const confValues = Object.values(confidence) as number[];
   const minConf = confValues.length > 0 ? Math.min(...confValues) : 0;
