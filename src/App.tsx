@@ -208,23 +208,25 @@ export default function App() {
       
       <div class="bg-slate-100 rounded-xl p-6 md:p-8 flex flex-col justify-start border border-slate-200 mt-8">
         <h3 class="text-2xl font-bold text-slate-800 mb-6 text-center">Borging is...</h3>
-        <p class="mb-6">
-          De term 'borging' is in de WHW niet gedefinieerd. Omdat een toetssysteem nooit 100% waterdicht is, is het zinvol de term goed te definiëren en in de context van het doel te plaatsen:
-        </p>
-        <ul class="list-none pl-0 space-y-4">
-          <li class="flex items-start">
-            <span class="text-blue-500 mr-3 font-black text-xl leading-snug">→</span>
-            <span><strong>Borgen</strong> is het objectief en systematisch vastleggen en aantoonbaar bewaken van de kwaliteit van toetsing door middel van maatregelen en procedures</span>
-          </li>
-          <li class="flex items-start">
-            <span class="text-blue-500 mr-3 font-black text-xl leading-snug">→</span>
-            <span><strong>Borging is succesvol</strong> als systematische meting van de kwaliteit van toetsing leidt tot het benodigde vertrouwen binnen de examencommissie om het verlenen van een graad te onderschrijven</span>
-          </li>
-          <li class="flex items-start">
-            <span class="text-blue-500 mr-3 font-black text-xl leading-snug">→</span>
-            <span><strong>Borgende instrumenten</strong> bieden een objectieve weergave van de kwaliteiten van het onderwijs- en toetssysteem, zodat de examencommissie een beredeneerd oordeel kan vormen over haar vertrouwen in dit systeem</span>
-          </li>
-        </ul>
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <p class="mb-6">
+            De term 'borging' is in de WHW niet gedefinieerd. Omdat een toetssysteem nooit 100% waterdicht is, is het zinvol de term goed te definiëren en in de context van het doel te plaatsen:
+          </p>
+          <ul class="list-none pl-0 space-y-4">
+            <li class="flex items-start">
+              <span class="text-blue-500 mr-3 font-black text-xl leading-snug">→</span>
+              <span><strong>Borgen</strong> is het objectief en systematisch vastleggen en aantoonbaar bewaken van de kwaliteit van toetsing door middel van maatregelen en procedures</span>
+            </li>
+            <li class="flex items-start">
+              <span class="text-blue-500 mr-3 font-black text-xl leading-snug">→</span>
+              <span><strong>Borging is succesvol</strong> als systematische meting van de kwaliteit van toetsing leidt tot het benodigde vertrouwen binnen de examencommissie om het verlenen van een graad te onderschrijven</span>
+            </li>
+            <li class="flex items-start">
+              <span class="text-blue-500 mr-3 font-black text-xl leading-snug">→</span>
+              <span><strong>Borgende instrumenten</strong> bieden een objectieve weergave van de kwaliteiten van het onderwijs- en toetssysteem, zodat de examencommissie een beredeneerd oordeel kan vormen over haar vertrouwen in dit systeem</span>
+            </li>
+          </ul>
+        </div>
       </div>
 
       <p class="mt-8">
@@ -703,29 +705,31 @@ export default function App() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch mt-8 print:break-before-page">
                 <div className="bg-slate-100 dark:bg-slate-700/50 rounded-xl p-6 md:p-8 flex flex-col justify-start border border-slate-200 dark:border-slate-600 transition-colors">
                   <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-6 text-center">Borging is...</h3>
-                  <div className="prose prose-slate dark:prose-invert prose-lg max-w-none text-slate-700 dark:text-slate-300">
-                    <p className="mb-6">
-                      De term 'borging' is in de WHW niet gedefinieerd. Omdat een toetssysteem nooit 100% waterdicht is, is het zinvol de term goed te definiëren en in de context van het doel te plaatsen:
-                    </p>
-                    <ul className="list-none pl-0 space-y-4">
-                      <li className="flex items-start">
-                        <span className="text-blue-500 mr-3 font-black text-xl leading-snug">→</span>
-                        <span><strong>Borgen</strong> is het objectief en systematisch vastleggen en aantoonbaar bewaken van de kwaliteit van toetsing door middel van maatregelen en procedures</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-blue-500 mr-3 font-black text-xl leading-snug">→</span>
-                        <span><strong>Borging is succesvol</strong> als systematische meting van de kwaliteit van toetsing leidt tot het benodigde vertrouwen binnen de examencommissie om het verlenen van een graad te onderschrijven</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-blue-500 mr-3 font-black text-xl leading-snug">→</span>
-                        <span><strong>Borgende instrumenten</strong> bieden een objectieve weergave van de kwaliteiten van het onderwijs- en toetssysteem, zodat de examencommissie een beredeneerd oordeel kan vormen over haar vertrouwen in dit systeem</span>
-                      </li>
-                    </ul>
+                  <div className="relative w-full rounded-lg shadow-md bg-white dark:bg-slate-800 p-6 transition-colors flex-1">
+                    <div className="prose prose-slate dark:prose-invert prose-lg max-w-none text-slate-700 dark:text-slate-300">
+                      <p className="mb-6">
+                        De term 'borging' is in de WHW niet gedefinieerd. Omdat een toetssysteem nooit 100% waterdicht is, is het zinvol de term goed te definiëren en in de context van het doel te plaatsen:
+                      </p>
+                      <ul className="list-none pl-0 space-y-4">
+                        <li className="flex items-start">
+                          <span className="text-blue-500 mr-3 font-black text-xl leading-snug">→</span>
+                          <span><strong>Borgen</strong> is het objectief en systematisch vastleggen en aantoonbaar bewaken van de kwaliteit van toetsing door middel van maatregelen en procedures</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-blue-500 mr-3 font-black text-xl leading-snug">→</span>
+                          <span><strong>Borging is succesvol</strong> als systematische meting van de kwaliteit van toetsing leidt tot het benodigde vertrouwen binnen de examencommissie om het verlenen van een graad te onderschrijven</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="text-blue-500 mr-3 font-black text-xl leading-snug">→</span>
+                          <span><strong>Borgende instrumenten</strong> bieden een objectieve weergave van de kwaliteiten van het onderwijs- en toetssysteem, zodat de examencommissie een beredeneerd oordeel kan vormen over haar vertrouwen in dit systeem</span>
+                        </li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
                 <div className="bg-slate-100 dark:bg-slate-700/50 rounded-xl p-6 md:p-8 flex flex-col items-center justify-start border border-slate-200 dark:border-slate-600 min-h-[300px] transition-colors">
                   <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-6 text-center w-full">De Vertrouwensboom</h3>
-                  <div className="relative w-full aspect-square max-w-md mx-auto overflow-hidden rounded-lg shadow-md bg-white dark:bg-slate-800 flex items-center justify-center mt-auto mb-auto transition-colors">
+                  <div className="relative w-full overflow-hidden rounded-lg shadow-md bg-white dark:bg-slate-800 flex items-center justify-center transition-colors flex-1 p-6">
                     <img 
                       src="./vertrouwensboom.png" 
                       alt="Vertrouwensboom" 
@@ -752,31 +756,31 @@ export default function App() {
               Geef aan welke instrumenten u hanteert en of actie vereist is (evt. door wie en wanneer).<br />
               Geef per categorie uw vertrouwen aan en voeg evt. een opmerking toe.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 w-full">
-              <div className="flex items-center gap-2">
-                <input 
-                  type="checkbox" 
-                  id="toggle-action-details" 
-                  checked={showActionDetails} 
-                  onChange={(e) => setShowActionDetails(e.target.checked)}
-                  className="w-4 h-4 text-slate-900 dark:text-slate-100 rounded border-slate-300 dark:border-slate-600 focus:ring-slate-900 dark:focus:ring-slate-100 bg-white dark:bg-slate-800"
-                />
-                <label htmlFor="toggle-action-details" className="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-                  Actieplanning t.b.v. borgingsagenda in-/uitschakelen
-                </label>
-              </div>
-              <button 
-                onClick={() => {
-                  if(window.confirm('Weet u zeker dat u alle ingevulde gegevens wilt wissen?')) {
-                    localStorage.clear();
-                    window.location.reload();
-                  }
-                }}
-                className="flex items-center gap-2 bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors print:hidden"
-              >
-                Wis Gegevens
-              </button>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 w-full">
+            <div className="flex items-center gap-2">
+              <input 
+                type="checkbox" 
+                id="toggle-action-details" 
+                checked={showActionDetails} 
+                onChange={(e) => setShowActionDetails(e.target.checked)}
+                className="w-4 h-4 text-slate-900 dark:text-slate-100 rounded border-slate-300 dark:border-slate-600 focus:ring-slate-900 dark:focus:ring-slate-100 bg-white dark:bg-slate-800"
+              />
+              <label htmlFor="toggle-action-details" className="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                Actieplanning t.b.v. borgingsagenda in-/uitschakelen
+              </label>
             </div>
+            <button 
+              onClick={() => {
+                if(window.confirm('Weet u zeker dat u alle ingevulde gegevens wilt wissen?')) {
+                  localStorage.clear();
+                  window.location.reload();
+                }
+              }}
+              className="flex items-center gap-2 bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors print:hidden"
+            >
+              Wis Gegevens
+            </button>
           </div>
 
           <div className="space-y-4">
@@ -933,6 +937,10 @@ export default function App() {
         <section id="resultaten" className="space-y-8 scroll-mt-24 pt-8 border-t border-slate-200 dark:border-slate-700">
           <div className="text-center max-w-3xl mx-auto space-y-4">
             <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Resultaten</h2>
+            <p className="text-md font-medium text-blue-600 dark:text-blue-400 mt-2 print:hidden">
+              <span className="hidden md:inline">Sla de analyse bovenaan op via 'Exporteer analyse'.</span>
+              <span className="inline md:hidden">Tip: in de desktopversie kun je de analyse opslaan.</span>
+            </p>
           </div>
 
           <div id="resultaten-content" className="space-y-8 bg-slate-50 dark:bg-slate-900 p-2 -m-2 rounded-xl transition-colors">
@@ -1133,7 +1141,7 @@ export default function App() {
                   <AlertCircle className="w-5 h-5 text-amber-500" />
                   Aandachtspunten
                 </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Instrumenten die momenteel niet worden ingezet (geen "Doen we").</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Instrumenten die momenteel niet worden ingezet.</p>
               </div>
               <div className="p-6 flex-1 bg-slate-50/50 dark:bg-slate-900/20 transition-colors">
                 {aandachtspunten.length === 0 ? (

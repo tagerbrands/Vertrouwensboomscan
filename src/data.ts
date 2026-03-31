@@ -90,7 +90,7 @@ export const categories: Category[] = [
         description: "Integratie van bewijsmaterialen en bijbehorende feedback in het onderwijsontwerp, conform de principes van constructive alignment.",
         instruments: [
           { id: "i8", text: "Stel vast dat bewijsmaterialen zijn ontworpen in relatie tot kwaliteitscriteria, hoe ze worden verzameld en hoe daarop feedback wordt gegenereerd en vastgelegd." },
-          { id: "i9", text: "Zie periodiek en steekproefsgewijs toe op de uitvoer van de vastgestelde procedures." }
+          { id: "i9", text: "Zie periodiek en steekproefsgewijs toe op de uitvoer van de vastgestelde low stake-procedures." }
         ]
       },
       {
@@ -98,7 +98,7 @@ export const categories: Category[] = [
         description: "Richtlijnen voor de omgang met bewijsmaterialen die buiten het toezicht van de opleiding tot stand zijn gekomen.",
         instruments: [
           { id: "i10", text: "Toets of de EVB procedure de kwaliteit en authenticiteit van extern bewijsmateriaal waarborgt." },
-          { id: "i11", text: "Zie periodiek en steekproefsgewijs toe op de uitvoer van de vastgestelde procedures." }
+          { id: "i11", text: "Zie periodiek en steekproefsgewijs toe op de uitvoer van de vastgestelde EVB-procedures." }
         ]
       },
       {
@@ -107,7 +107,7 @@ export const categories: Category[] = [
         instruments: [
           { id: "i12", text: "Verifieer of de status van deze beoordeling in relatie tot de beslissing transparant is voor alle actoren." },
           { id: "i13", text: "Valideer of beoordelingscriteria in relatie tot het holistische oordeel transparant zijn voor alle actoren." },
-          { id: "i14", text: "Zie periodiek en steekproefsgewijs toe op de uitvoer van de vastgestelde procedures." }
+          { id: "i14", text: "Zie periodiek en steekproefsgewijs toe op de uitvoer van de vastgestelde medium stake-procedures." }
         ]
       },
       {
@@ -117,7 +117,7 @@ export const categories: Category[] = [
           { id: "i15", text: "Toets of de beslisprocedure grip geeft op de rolverdeling, mate van (on)afhankelijkheid van beoordelaars en toepassing van vierogenbeleid." },
           { id: "i16", text: "Beoordeel of de beslisprocedure aan alle eisen voldoet (conform OER, examinatorhandelingen, remediëring, enz.)." },
           { id: "i17", text: "Beoordeel of toetsinstructies en evt. rubrics van voldoende kwaliteit zijn." },
-          { id: "i18", text: "Zie periodiek en steekproefsgewijs toe op de uitvoer van de vastgestelde procedures." }
+          { id: "i18", text: "Zie periodiek en steekproefsgewijs toe op de uitvoer van de vastgestelde high stake-procedures." }
         ]
       }
     ]
