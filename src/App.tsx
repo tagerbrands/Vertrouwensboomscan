@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import html2canvas from 'html2canvas';
+import * as htmlToImage from 'html-to-image';
 import { categories, Category, Instrument } from './data';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell, ReferenceLine } from 'recharts';
 import { ArrowUp, ArrowDown, CheckCircle2, AlertCircle, Info, GripVertical, Download, Star, User, Calendar, MessageSquare, Moon, Sun } from 'lucide-react';
@@ -77,37 +77,11 @@ export default function App() {
     let barImg = '';
 
     try {
-      await new Promise(r => setTimeout(r, 500)); // Give browser time to render charts
-      
       if (spiderEl) {
-        const canvas = await html2canvas(spiderEl, { 
-          logging: false, 
-          backgroundColor: isDarkMode ? '#1e293b' : '#ffffff',
-          onclone: (clonedDoc) => {
-            const el = clonedDoc.getElementById('spider-chart');
-            if (el) {
-              el.style.display = 'block';
-              el.style.visibility = 'visible';
-            }
-          }
-        });
-        spiderImg = canvas.toDataURL('image/png');
-        console.log('Spider Image Length:', spiderImg?.length);
+        spiderImg = await htmlToImage.toPng(spiderEl, { pixelRatio: 2, backgroundColor: isDarkMode ? '#1e293b' : '#ffffff' });
       }
       if (barEl) {
-        const canvas = await html2canvas(barEl, { 
-          logging: false, 
-          backgroundColor: isDarkMode ? '#1e293b' : '#ffffff',
-          onclone: (clonedDoc) => {
-            const el = clonedDoc.getElementById('bar-chart');
-            if (el) {
-              el.style.display = 'block';
-              el.style.visibility = 'visible';
-            }
-          }
-        });
-        barImg = canvas.toDataURL('image/png');
-        console.log('Bar Image Length:', barImg?.length);
+        barImg = await htmlToImage.toPng(barEl, { pixelRatio: 2, backgroundColor: isDarkMode ? '#1e293b' : '#ffffff' });
       }
     } catch (e) {
       console.error("Error capturing charts", e);
@@ -236,12 +210,12 @@ export default function App() {
     <div class="space-y-8">
       ${spiderImg ? `
       <div class="avoid-break">
-        <div class="flex justify-center"><img src="${spiderImg}" alt="Spider Chart" style="width: 100%; max-width: 500px; height: auto; object-fit: contain;" /></div>
+        <div class="flex justify-center"><img src="${spiderImg}" style="width:100%; max-width:500px; margin: 20px auto;" /></div>
       </div>` : ''}
       
       ${barImg ? `
       <div class="avoid-break mt-8">
-        <div class="flex justify-center"><img src="${barImg}" alt="Bar Chart" style="width: 100%; max-width: 500px; height: auto; object-fit: contain;" /></div>
+        <div class="flex justify-center"><img src="${barImg}" style="width:100%; max-width:500px; margin: 20px auto;" /></div>
       </div>` : ''}
     </div>
   </div>
