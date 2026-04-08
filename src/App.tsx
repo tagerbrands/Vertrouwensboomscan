@@ -70,9 +70,9 @@ export default function App() {
 
   const handleGenerateReport = async (reportType: 'full' | 'results') => {
     // Capture charts first
-    const spiderEl = document.getElementById('spider-chart');
-    const barEl = document.getElementById('bar-chart');
-    const matrixEl = document.getElementById('matrix-chart');
+    const spiderEl = document.getElementById('spider-chart-container');
+    const barEl = document.getElementById('bar-chart-container');
+    const matrixEl = document.getElementById('matrix-chart-container');
     
     let spiderImg = '';
     let barImg = '';
@@ -212,7 +212,7 @@ export default function App() {
   <!-- Page 4: Visuals -->
   <div class="page-break p-6 avoid-break">
     <h2 class="text-2xl font-bold text-slate-900 mb-4 border-b-2 border-slate-200 pb-2">Visuele Weergave</h2>
-    <div class="flex flex-col items-center gap-4">
+    <div class="flex flex-col items-center gap-3">
       ${spiderImg ? `
       <div class="w-full flex justify-center">
         <img src="${spiderImg}" style="width:100%; max-width:450px; max-height:250px; object-fit:contain; margin: 0 auto;" />
@@ -225,7 +225,7 @@ export default function App() {
 
       ${matrixImg ? `
       <div class="w-full flex justify-center">
-        <img src="${matrixImg}" style="width:100%; max-width:300px; max-height:300px; aspect-ratio: 1/1; object-fit:contain; margin: 0 auto;" />
+        <img src="${matrixImg}" style="width:100%; max-width:450px; max-height:350px; object-fit:contain; margin: 0 auto;" />
       </div>` : ''}
     </div>
   </div>
@@ -1029,13 +1029,13 @@ export default function App() {
 
               {/* Confidence Matrix */}
               <div id="matrix-chart-container" className="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col transition-colors print:break-before-page">
-                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 text-center">Vertrouwensmatrix</h3>
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 text-center">Zones van vertrouwen</h3>
                 <div className="w-full h-[450px]" id="matrix-chart">
                   <ResponsiveContainer width="100%" height="100%">
                     <ScatterChart margin={{ top: 20, right: 20, bottom: 40, left: 20 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? '#334155' : '#e2e8f0'} />
-                      <XAxis type="number" dataKey="x" name="Inzet" unit="%" domain={[0, 100]} tick={{ fill: isDarkMode ? '#94a3b8' : '#475569' }} label={{ value: 'Inzet van instrumenten', position: 'insideBottom', offset: -25, fill: isDarkMode ? '#94a3b8' : '#475569' }} />
-                      <YAxis type="number" dataKey="y" name="Vertrouwen" unit="%" domain={[0, 100]} tick={{ fill: isDarkMode ? '#94a3b8' : '#475569' }} label={{ value: 'Vertrouwen', angle: -90, position: 'insideLeft', offset: -10, fill: isDarkMode ? '#94a3b8' : '#475569' }} />
+                      <XAxis type="number" dataKey="x" name="Inzet" domain={[0, 100]} tick={{ fill: isDarkMode ? '#94a3b8' : '#475569' }} label={{ value: 'Inzet van instrumenten (%)', position: 'insideBottom', offset: -25, fill: isDarkMode ? '#94a3b8' : '#475569' }} />
+                      <YAxis type="number" dataKey="y" name="Vertrouwen" domain={[0, 100]} tick={{ fill: isDarkMode ? '#94a3b8' : '#475569' }} label={{ value: 'Vertrouwen (%)', angle: -90, position: 'insideLeft', offset: -10, fill: isDarkMode ? '#94a3b8' : '#475569' }} />
                       <ZAxis type="number" dataKey="z" range={[100, 1000]} name="Aantal instrumenten" />
                       <Tooltip cursor={{ strokeDasharray: '3 3' }} 
                         content={({ active, payload }) => {
@@ -1055,10 +1055,10 @@ export default function App() {
                       />
                       <ReferenceLine x={50} stroke={isDarkMode ? '#475569' : '#94a3b8'} strokeDasharray="3 3" />
                       <ReferenceLine y={50} stroke={isDarkMode ? '#475569' : '#94a3b8'} strokeDasharray="3 3" />
-                      <ReferenceArea x1={50} x2={100} y1={50} y2={100} fillOpacity={0} label={{ position: 'center', value: 'Hoog vertrouwen, Hoge inzet', fill: isDarkMode ? '#64748b' : '#94a3b8', fontSize: 12, fontWeight: 'bold' }} />
-                      <ReferenceArea x1={0} x2={50} y1={50} y2={100} fillOpacity={0} label={{ position: 'center', value: 'Hoog vertrouwen, Lage inzet', fill: isDarkMode ? '#64748b' : '#94a3b8', fontSize: 12, fontWeight: 'bold' }} />
-                      <ReferenceArea x1={50} x2={100} y1={0} y2={50} fillOpacity={0} label={{ position: 'center', value: 'Laag vertrouwen, Hoge inzet', fill: isDarkMode ? '#64748b' : '#94a3b8', fontSize: 12, fontWeight: 'bold' }} />
-                      <ReferenceArea x1={0} x2={50} y1={0} y2={50} fillOpacity={0} label={{ position: 'center', value: 'Laag vertrouwen, Lage inzet', fill: isDarkMode ? '#64748b' : '#94a3b8', fontSize: 12, fontWeight: 'bold' }} />
+                      <ReferenceArea x1={75} x2={100} y1={75} y2={100} fillOpacity={0} label={{ position: 'center', value: 'Op orde', fill: isDarkMode ? '#64748b' : '#94a3b8', fontSize: 14, fontWeight: 'bold' }} />
+                      <ReferenceArea x1={0} x2={25} y1={75} y2={100} fillOpacity={0} label={{ position: 'center', value: 'Blinde vlekken?', fill: isDarkMode ? '#64748b' : '#94a3b8', fontSize: 14, fontWeight: 'bold' }} />
+                      <ReferenceArea x1={75} x2={100} y1={0} y2={25} fillOpacity={0} label={{ position: 'center', value: 'Grijp in', fill: isDarkMode ? '#64748b' : '#94a3b8', fontSize: 14, fontWeight: 'bold' }} />
+                      <ReferenceArea x1={0} x2={25} y1={0} y2={25} fillOpacity={0} label={{ position: 'center', value: 'Onvoldoende', fill: isDarkMode ? '#64748b' : '#94a3b8', fontSize: 14, fontWeight: 'bold' }} />
                       <Scatter name="Categorieën" data={scatterData} isAnimationActive={false} onClick={(data) => scrollToCategory(data.id)} className="cursor-pointer hover:opacity-80 transition-opacity">
                         {scatterData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.fill} className="cursor-pointer" />
