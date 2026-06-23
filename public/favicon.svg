@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Boomstam (bruin) -->
+  <path d="M28 36 L28 64 L36 64 L36 36 Z" fill="#8B4513" />
+  <!-- Bladerdek (groen) -->
+  <circle cx="32" cy="24" r="18" fill="#228B22" />
+  <circle cx="18" cy="36" r="14" fill="#228B22" />
+  <circle cx="46" cy="36" r="14" fill="#228B22" />
+  <circle cx="32" cy="10" r="12" fill="#228B22" />
+</svg>

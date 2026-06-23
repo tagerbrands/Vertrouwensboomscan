@@ -915,7 +915,7 @@ export default function App() {
                                     <Calendar className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                                     <input 
                                       type="text" 
-                                      placeholder="Deadline (bijv. Q3 2026)..." 
+                                      placeholder={isEnglish ? "Deadline (e.g. Q3 2026)..." : "Deadline (bijv. Q3 2026)..."} 
                                       value={actionDetails[instrument.id]?.deadline || ''}
                                       onChange={(e) => handleActionDetailChange(instrument.id, 'deadline', e.target.value)}
                                       className="text-sm bg-transparent border-b border-slate-300 dark:border-slate-600 px-1 py-1 w-full focus:outline-none focus:border-slate-500 dark:focus:border-slate-400 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500"

@@ -22,7 +22,7 @@ export interface Category {
 export const categoriesNl: Category[] = [
   {
     id: "luk-kwaliteit",
-    name: "LUK-kwaliteit",
+    name: "Kwaliteit van Leeruitkomsten (LUK)",
     colorClass: "bg-rose-50 dark:bg-rose-900/40",
     containerColorClass: "bg-rose-50/30 dark:bg-rose-900/10",
     textColorClass: "text-rose-700 dark:text-rose-300",
@@ -238,7 +238,7 @@ export const categoriesNl: Category[] = [
 export const categoriesEn: Category[] = [
   {
     id: "luk-kwaliteit",
-    name: "LUK Quality",
+    name: "Quality of Learning Outcomes (LOU)",
     colorClass: "bg-rose-50 dark:bg-rose-900/40",
     containerColorClass: "bg-rose-50/30 dark:bg-rose-900/10",
     textColorClass: "text-rose-700 dark:text-rose-300",
@@ -246,16 +246,16 @@ export const categoriesEn: Category[] = [
     elements: [
       {
         name: "Formulation",
-        description: "Clear, testable formulations of LUKs aligned with the appropriate level within the curriculum. Rubrics make criteria concrete and measurable.",
+        description: "Clear, testable formulations of LOUs aligned with the appropriate level within the curriculum. Rubrics make criteria concrete and measurable.",
         instruments: [
-          { id: "i1", text: "Validate whether (developments of) the LUKs meet the applicable NVAO quality requirements: tuning, level, taxonomy." }
+          { id: "i1", text: "Validate whether (developments of) the LOUs meet the applicable NVAO quality requirements: tuning, level, taxonomy." }
         ]
       },
       {
         name: "BOKS(AE)",
         description: "Body of Knowledge, Skills (and Attitude & Ethics), formulated based on the professional competency profile.",
         instruments: [
-          { id: "i2", text: "Test whether the LUKs demonstrably cover the BOKS(AE) and if the relationship is comprehensively included in the Self-evaluation and Reflection (ZER) for accreditation." }
+          { id: "i2", text: "Test whether the LOUs demonstrably cover the BOKS(AE) and if the relationship is comprehensively included in the Self-evaluation and Reflection (ZER) for accreditation." }
         ]
       }
     ]
@@ -270,9 +270,9 @@ export const categoriesEn: Category[] = [
     elements: [
       {
         name: "Admissibility Criteria",
-        description: "Establishing requirements that do not fall under the LUKs, but are necessary to make correct decisions.",
+        description: "Establishing requirements that do not fall under the LOUs, but are necessary to make correct decisions.",
         instruments: [
-          { id: "i3", text: "Evaluate these criteria periodically to determine that they are 1) necessary, 2) do not lead to excessive burden on students, 3) are coherent with the LUKs and 4) contribute to the quality of decisions." }
+          { id: "i3", text: "Evaluate these criteria periodically to determine that they are 1) necessary, 2) do not lead to excessive burden on students, 3) are coherent with the LOUs and 4) contribute to the quality of decisions." }
         ]
       },
       {
@@ -319,7 +319,7 @@ export const categoriesEn: Category[] = [
       },
       {
         name: "Interim Evaluation (Medium stake)",
-        description: "Feedback moments halfway through the learning trajectory that provide insight into progress towards the LUKs. The portfolio is viewed holistically.",
+        description: "Feedback moments halfway through the learning trajectory that provide insight into progress towards the LOUs. The portfolio is viewed holistically.",
         instruments: [
           { id: "i12", text: "Verify whether the status of this assessment in relation to the decision is transparent to all actors." },
           { id: "i13", text: "Validate whether assessment criteria in relation to the holistic judgment are transparent to all actors." },
@@ -381,7 +381,7 @@ export const categoriesEn: Category[] = [
       },
       {
         name: "Calibration",
-        description: "Structural calibration sessions to standardize the interpretation of LUKs and expectations regarding admissibility criteria, leading to consistent decision-making.",
+        description: "Structural calibration sessions to standardize the interpretation of LOUs and expectations regarding admissibility criteria, leading to consistent decision-making.",
         instruments: [
           { id: "i24", text: "Selectively oversee the execution of the calibration procedure, inc. the quality and application of supporting materials (like a guide)." },
           { id: "i25", text: "Assess whether documentation and communication about the achieved consensus are of sufficient quality." },
