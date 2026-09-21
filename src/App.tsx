@@ -3,7 +3,9 @@ import * as htmlToImage from 'html-to-image';
 import { categoriesNl, categoriesEn, Category, Instrument } from './data';
 import { translations } from './translations';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell, ReferenceLine, ScatterChart, Scatter, ZAxis, ReferenceArea } from 'recharts';
-import { ArrowUp, ArrowDown, CheckCircle2, AlertCircle, Info, GripVertical, Download, Star, User, Calendar, MessageSquare, Moon, Sun, Languages } from 'lucide-react';
+import { ArrowUp, ArrowDown, CheckCircle2, AlertCircle, Info, GripVertical, Download, Star, User, Calendar, MessageSquare, Moon, Sun, Languages, FileSpreadsheet, Users, X } from 'lucide-react';
+import { exportScanToExcel } from './excelUtils';
+import { GroupAnalysis } from './GroupAnalysis';
 
 // Helper to load state from localStorage
 const loadState = <T,>(key: string, defaultValue: T): T => {
@@ -26,6 +28,16 @@ export default function App() {
   const [showActionDetails, setShowActionDetails] = useState(() => loadState('borging_showActionDetails', true));
   const [categoryComments, setCategoryComments] = useState<Record<string, string>>(() => loadState('borging_categoryComments', {}));
   const [showCommentInput, setShowCommentInput] = useState<Record<string, boolean>>({});
+
+  // Group analysis and Excel export modal state
+  const [showGroupAnalysis, setShowGroupAnalysis] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportName, setExportName] = useState(() => loadState('borging_userName', ''));
+  const [exportToast, setExportToast] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('borging_userName', JSON.stringify(exportName));
+  }, [exportName]);
 
   // Save state to localStorage whenever it changes
   useEffect(() => { localStorage.setItem('borging_doeIk', JSON.stringify(checkedDoeIk)); }, [checkedDoeIk]);
@@ -650,6 +662,42 @@ export default function App() {
     );
   }, [isDarkMode]);
 
+  const handleExportExcel = () => {
+    exportScanToExcel({
+      participantName: exportName.trim(),
+      isEnglish,
+      categories,
+      checkedDoeIk,
+      checkedVergtActie,
+      checkedNietNodig,
+      confidence,
+      comments: categoryComments,
+      actionDetails,
+    });
+    setShowExportModal(false);
+    setExportToast(true);
+    setTimeout(() => setExportToast(false), 3500);
+  };
+
+  if (showGroupAnalysis) {
+    return (
+      <GroupAnalysis
+        isEnglish={isEnglish}
+        isDarkMode={isDarkMode}
+        onBack={() => setShowGroupAnalysis(false)}
+        currentScanData={{
+          participantName: exportName || (isEnglish ? "Current Scan" : "Huidige Scan"),
+          checkedDoeIk,
+          checkedVergtActie,
+          checkedNietNodig,
+          confidence,
+          comments: categoryComments,
+          actionDetails,
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans pb-20 transition-colors">
       {/* Header */}
@@ -680,31 +728,24 @@ export default function App() {
               <a href="#resultaten" className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">{tLang.resultaten}</a>
               <a href="#agenda" className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">{tLang.agenda}</a>
             </nav>
-            <div className="hidden md:flex items-center print:hidden">
-              <div className="relative group bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                <button 
-                  className="flex items-center gap-2 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-md text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-600 shadow-sm transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  {tLang.exportReport}
-                </button>
-                <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 origin-top-right transform scale-95 group-hover:scale-100 z-50">
-                  <div className="p-1.5 flex flex-col gap-1">
-                    <button
-                      onClick={() => handleGenerateReport('full')}
-                      className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors font-medium"
-                    >
-                      {tLang.exportFull}
-                    </button>
-                    <button
-                      onClick={() => handleGenerateReport('results')}
-                      className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors font-medium"
-                    >
-                      {tLang.exportResults}
-                    </button>
-                  </div>
-                </div>
-              </div>
+            <div className="flex items-center gap-2 print:hidden">
+              <button 
+                onClick={() => setShowExportModal(true)}
+                className="flex items-center gap-2 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-600 shadow-sm transition-colors cursor-pointer"
+                title={tLang.exportReport}
+              >
+                <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span>{tLang.exportReport}</span>
+              </button>
+
+              <button
+                onClick={() => setShowGroupAnalysis(true)}
+                className="flex items-center gap-2 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-600 shadow-sm transition-colors cursor-pointer"
+                title={tLang.groepsanalyse}
+              >
+                <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span>{tLang.groepsanalyse}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -837,8 +878,8 @@ export default function App() {
                 </div>
 
                 <div className="divide-y divide-black/5 dark:divide-white/5">
-                  {category.elements.map(element => (
-                    <div key={element.id} className="px-4 py-2">
+                  {category.elements.map((element, elemIdx) => (
+                    <div key={`${category.id}-elem-${elemIdx}-${element.name}`} className="px-4 py-2">
                       <div className="mb-1.5 flex items-baseline gap-2">
                         <h4 className="text-base font-bold text-slate-800 dark:text-slate-200">{element.name}</h4>
                         <p className="text-xs text-slate-600 dark:text-slate-400 hidden md:block">- {element.description}</p>
@@ -961,10 +1002,13 @@ export default function App() {
 
         {/* Section 3: Resultaten */}
         <section id="resultaten" className="space-y-8 scroll-mt-24 pt-8 border-t border-slate-200 dark:border-slate-700">
-          <div className="text-center max-w-3xl mx-auto space-y-4">
+          <div className="text-center max-w-3xl mx-auto space-y-2">
             <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{tLang.resultaten}</h2>
-            <p className="text-md font-medium text-slate-900 dark:text-white mt-2 print:hidden hidden md:block">
+            <p className="text-md font-medium text-slate-900 dark:text-white mt-2 print:hidden">
               {tLang.resultatenDesc}
+            </p>
+            <p className="text-sm font-normal text-slate-600 dark:text-slate-400 print:hidden">
+              {tLang.groepsanalyseDesc}
             </p>
           </div>
 
@@ -1310,8 +1354,8 @@ export default function App() {
                   </div>
                 ) : (
                   <ul className="space-y-4">
-                    {aandachtspunten.map((item, idx) => (
-                      <li key={`aandacht-${idx}`} className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
+                    {aandachtspunten.map((item) => (
+                      <li key={`aandacht-${item.instrument.id}`} className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
                         <div className="flex items-center gap-2 mb-2">
                           <span className={`text-xs font-semibold px-2 py-1 rounded-md ${item.category.colorClass} ${item.category.textColorClass}`}>
                             {item.category.name}
@@ -1346,6 +1390,103 @@ export default function App() {
           </a>
         </p>
       </footer>
+
+      {/* Export Analysis Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-md w-full p-6 space-y-5 transition-colors">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+              <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-lg">
+                <FileSpreadsheet className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <span>{tLang.exportExcelModalTitle}</span>
+              </div>
+              <button
+                onClick={() => setShowExportModal(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                {tLang.nameOrAliasPrompt}
+              </label>
+              <input
+                type="text"
+                autoFocus
+                placeholder={tLang.nameOrAliasPlaceholder}
+                value={exportName}
+                onChange={e => setExportName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleExportExcel();
+                }}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+              />
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {isEnglish
+                  ? "This name or alias is saved into the Excel and shown in the group analysis charts."
+                  : "Deze naam of alias wordt opgeslagen in het Excel-bestand en getoond in de groepsanalyse."}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                onClick={handleExportExcel}
+                className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-xl shadow-sm transition-colors text-sm cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                {tLang.exportExcelBtn}
+              </button>
+              <button
+                onClick={() => setShowExportModal(false)}
+                className="w-full py-2 px-4 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50 text-sm font-medium transition-colors cursor-pointer"
+              >
+                {tLang.cancel}
+              </button>
+            </div>
+
+            {/* Print / PDF Option */}
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 text-center">
+              <span className="text-xs text-slate-400 block mb-1.5">
+                {isEnglish ? "Or generate print / PDF report:" : "Of afdrukken / PDF-rapport genereren:"}
+              </span>
+              <div className="flex gap-3 justify-center text-xs">
+                <button
+                  onClick={() => {
+                    setShowExportModal(false);
+                    handleGenerateReport('full');
+                  }}
+                  className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium cursor-pointer"
+                >
+                  {tLang.exportFull}
+                </button>
+                <span className="text-slate-300 dark:text-slate-600">|</span>
+                <button
+                  onClick={() => {
+                    setShowExportModal(false);
+                    handleGenerateReport('results');
+                  }}
+                  className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium cursor-pointer"
+                >
+                  {tLang.exportResults}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export Success Toast */}
+      {exportToast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-700 dark:border-slate-200 animate-in slide-in-from-bottom-5 duration-200">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 dark:text-emerald-600 shrink-0" />
+          <div className="text-xs">
+            <p className="font-bold">{isEnglish ? "Analysis exported to Excel!" : "Analyse geëxporteerd naar Excel!"}</p>
+            <p className="text-slate-300 dark:text-slate-600">{isEnglish ? "Open 'Group Analysis' to compare scans." : "Gebruik 'Groepsanalyse' om scans te vergelijken."}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
