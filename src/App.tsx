@@ -3,8 +3,8 @@ import * as htmlToImage from 'html-to-image';
 import { categoriesNl, categoriesEn, Category, Instrument } from './data';
 import { translations } from './translations';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell, ReferenceLine, ScatterChart, Scatter, ZAxis, ReferenceArea } from 'recharts';
-import { ArrowUp, ArrowDown, CheckCircle2, AlertCircle, Info, GripVertical, Download, Star, User, Calendar, MessageSquare, Moon, Sun, Languages, FileSpreadsheet, Users, X } from 'lucide-react';
-import { exportScanToExcel } from './excelUtils';
+import { ArrowUp, ArrowDown, CheckCircle2, AlertCircle, Info, GripVertical, Download, Star, User, Calendar, MessageSquare, Moon, Sun, Languages, FileSpreadsheet, Users, X, FileText, Printer, ArrowRight } from 'lucide-react';
+import { exportScanToExcel, exportDetailedReportToExcel } from './excelUtils';
 import { GroupAnalysis } from './GroupAnalysis';
 
 // Helper to load state from localStorage
@@ -34,6 +34,7 @@ export default function App() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportName, setExportName] = useState(() => loadState('borging_userName', ''));
   const [exportToast, setExportToast] = useState(false);
+  const [toastInfo, setToastInfo] = useState<{ title: string; desc: string }>({ title: '', desc: '' });
 
   useEffect(() => {
     localStorage.setItem('borging_userName', JSON.stringify(exportName));
@@ -662,7 +663,7 @@ export default function App() {
     );
   }, [isDarkMode]);
 
-  const handleExportExcel = () => {
+  const handleExportGroupExcel = () => {
     exportScanToExcel({
       participantName: exportName.trim(),
       isEnglish,
@@ -675,6 +676,32 @@ export default function App() {
       actionDetails,
     });
     setShowExportModal(false);
+    setToastInfo({
+      title: isEnglish ? "Excel for Group Analysis downloaded!" : "Excel voor groepsanalyse gedownload!",
+      desc: isEnglish ? "Share this file with others or upload it into Group Analysis." : "Deel dit bestand met anderen of laad het in de groepsanalyse.",
+    });
+    setExportToast(true);
+    setTimeout(() => setExportToast(false), 3500);
+  };
+
+  const handleExportDetailedReportExcel = () => {
+    exportDetailedReportToExcel({
+      participantName: exportName.trim(),
+      isEnglish,
+      categories,
+      checkedDoeIk,
+      checkedVergtActie,
+      checkedNietNodig,
+      confidence,
+      comments: categoryComments,
+      actionDetails,
+      agendaOrder,
+    });
+    setShowExportModal(false);
+    setToastInfo({
+      title: isEnglish ? "Excel report downloaded!" : "Excel-rapport gedownload!",
+      desc: isEnglish ? "Complete self-scan saved with overview, agenda and full checklist." : "Complete zelfscan opgeslagen met overzicht, agenda en volledige checklist.",
+    });
     setExportToast(true);
     setTimeout(() => setExportToast(false), 3500);
   };
@@ -1391,87 +1418,144 @@ export default function App() {
         </p>
       </footer>
 
-      {/* Export Analysis Modal */}
+      {/* Export Analysis Modal - 2-Column Split (Lean & Clean) */}
       {showExportModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-md w-full p-6 space-y-5 transition-colors">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
-              <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-lg">
-                <FileSpreadsheet className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                <span>{tLang.exportExcelModalTitle}</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="relative bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-4xl w-full p-6 sm:p-7 space-y-5 transition-colors max-h-[90vh] overflow-y-auto">
+            {/* Close Button Top Right */}
+            <button
+              onClick={() => setShowExportModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors z-10 cursor-pointer"
+              aria-label={tLang.closeBtn}
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* 2-Column Split */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch pt-2">
+              
+              {/* LINKER HELFT: Zelfscan netjes vastleggen & bewaren */}
+              <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 sm:p-6 flex flex-col justify-between space-y-4">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 shrink-0 mt-0.5">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-900 dark:text-white text-base">
+                        {tLang.exportLeftTitle}
+                      </h4>
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-normal mt-0.5">
+                        {tLang.exportLeftCaption}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Knoppen 'volledige analyse' en 'alleen resultaten' naast elkaar zonder onderschrift */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <button
+                      onClick={() => {
+                        setShowExportModal(false);
+                        handleGenerateReport('full');
+                      }}
+                      className="flex items-center justify-center gap-2 bg-emerald-100 hover:bg-emerald-200 active:bg-emerald-300 text-slate-900 dark:bg-emerald-200 dark:hover:bg-emerald-100 dark:text-slate-950 font-semibold py-3 px-3 rounded-xl border border-emerald-300/70 shadow-md transition-colors text-xs sm:text-sm cursor-pointer"
+                    >
+                      <Download className="w-4 h-4 shrink-0 text-slate-900 dark:text-slate-950" />
+                      <span>{tLang.exportPdfFullBtn}</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowExportModal(false);
+                        handleGenerateReport('results');
+                      }}
+                      className="flex items-center justify-center gap-2 bg-emerald-100 hover:bg-emerald-200 active:bg-emerald-300 text-slate-900 dark:bg-emerald-200 dark:hover:bg-emerald-100 dark:text-slate-950 font-semibold py-3 px-3 rounded-xl border border-emerald-300/70 shadow-md transition-colors text-xs sm:text-sm cursor-pointer"
+                    >
+                      <Download className="w-4 h-4 shrink-0 text-slate-900 dark:text-slate-950" />
+                      <span>{tLang.exportPdfResultsBtn}</span>
+                    </button>
+                  </div>
+
+                  {/* Excel-export met dezelfde opmaak als die in het rechter deel */}
+                  <button
+                    onClick={handleExportDetailedReportExcel}
+                    className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition-colors text-sm cursor-pointer"
+                  >
+                    <Download className="w-4 h-4 shrink-0" />
+                    <span>{tLang.exportExcelReportBtn}</span>
+                  </button>
+                </div>
               </div>
+
+              {/* RECHTER HELFT: Excel voor Groepsanalyse */}
+              <div className="bg-emerald-50/50 dark:bg-emerald-950/20 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 p-5 sm:p-6 flex flex-col justify-between space-y-4">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 shrink-0 mt-0.5">
+                      <Users className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-900 dark:text-white text-base">
+                        {tLang.exportRightTitle}
+                      </h4>
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-normal mt-0.5">
+                        {tLang.exportRightCaption}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Naam Input t.b.v. Groepsanalyse */}
+                  <div className="space-y-1.5 pt-1">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      {tLang.exportRightNamePrompt}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={tLang.exportRightNamePlaceholder}
+                      value={exportName}
+                      onChange={e => setExportName(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') handleExportGroupExcel();
+                      }}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm transition-all"
+                    />
+                  </div>
+
+                  {/* Download Button voor Groepsanalyse */}
+                  <button
+                    onClick={handleExportGroupExcel}
+                    className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition-colors text-sm cursor-pointer"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>{tLang.exportRightDownloadBtn}</span>
+                  </button>
+
+                  {/* Direct naar Groepsanalyse Link */}
+                  <div className="pt-1 flex justify-start">
+                    <button
+                      onClick={() => {
+                        setShowExportModal(false);
+                        setShowGroupAnalysis(true);
+                      }}
+                      className="text-emerald-700 dark:text-emerald-400 hover:underline font-semibold flex items-center gap-1.5 cursor-pointer text-xs"
+                    >
+                      <span>{tLang.openGroupAnalysisBtn}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-700">
               <button
                 onClick={() => setShowExportModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg"
+                className="py-2.5 px-6 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-medium transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                {tLang.closeBtn}
               </button>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                {tLang.nameOrAliasPrompt}
-              </label>
-              <input
-                type="text"
-                autoFocus
-                placeholder={tLang.nameOrAliasPlaceholder}
-                value={exportName}
-                onChange={e => setExportName(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') handleExportExcel();
-                }}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-              />
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {isEnglish
-                  ? "This name or alias is saved into the Excel and shown in the group analysis charts."
-                  : "Deze naam of alias wordt opgeslagen in het Excel-bestand en getoond in de groepsanalyse."}
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-2 pt-2">
-              <button
-                onClick={handleExportExcel}
-                className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-xl shadow-sm transition-colors text-sm cursor-pointer"
-              >
-                <Download className="w-4 h-4" />
-                {tLang.exportExcelBtn}
-              </button>
-              <button
-                onClick={() => setShowExportModal(false)}
-                className="w-full py-2 px-4 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50 text-sm font-medium transition-colors cursor-pointer"
-              >
-                {tLang.cancel}
-              </button>
-            </div>
-
-            {/* Print / PDF Option */}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 text-center">
-              <span className="text-xs text-slate-400 block mb-1.5">
-                {isEnglish ? "Or generate print / PDF report:" : "Of afdrukken / PDF-rapport genereren:"}
-              </span>
-              <div className="flex gap-3 justify-center text-xs">
-                <button
-                  onClick={() => {
-                    setShowExportModal(false);
-                    handleGenerateReport('full');
-                  }}
-                  className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium cursor-pointer"
-                >
-                  {tLang.exportFull}
-                </button>
-                <span className="text-slate-300 dark:text-slate-600">|</span>
-                <button
-                  onClick={() => {
-                    setShowExportModal(false);
-                    handleGenerateReport('results');
-                  }}
-                  className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium cursor-pointer"
-                >
-                  {tLang.exportResults}
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -1482,8 +1566,8 @@ export default function App() {
         <div className="fixed bottom-6 right-6 z-50 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-700 dark:border-slate-200 animate-in slide-in-from-bottom-5 duration-200">
           <CheckCircle2 className="w-5 h-5 text-emerald-400 dark:text-emerald-600 shrink-0" />
           <div className="text-xs">
-            <p className="font-bold">{isEnglish ? "Analysis exported to Excel!" : "Analyse geëxporteerd naar Excel!"}</p>
-            <p className="text-slate-300 dark:text-slate-600">{isEnglish ? "Open 'Group Analysis' to compare scans." : "Gebruik 'Groepsanalyse' om scans te vergelijken."}</p>
+            <p className="font-bold">{toastInfo.title || (isEnglish ? "Export successful!" : "Export geslaagd!")}</p>
+            <p className="text-slate-300 dark:text-slate-600">{toastInfo.desc || ""}</p>
           </div>
         </div>
       )}
