@@ -663,28 +663,7 @@ export default function App() {
     );
   }, [isDarkMode]);
 
-  const handleExportGroupExcel = () => {
-    exportScanToExcel({
-      participantName: exportName.trim(),
-      isEnglish,
-      categories,
-      checkedDoeIk,
-      checkedVergtActie,
-      checkedNietNodig,
-      confidence,
-      comments: categoryComments,
-      actionDetails,
-    });
-    setShowExportModal(false);
-    setToastInfo({
-      title: isEnglish ? "Excel for Group Analysis downloaded!" : "Excel voor groepsanalyse gedownload!",
-      desc: isEnglish ? "Share this file with others or upload it into Group Analysis." : "Deel dit bestand met anderen of laad het in de groepsanalyse.",
-    });
-    setExportToast(true);
-    setTimeout(() => setExportToast(false), 3500);
-  };
-
-  const handleExportDetailedReportExcel = () => {
+  const handleExportExcel = () => {
     exportDetailedReportToExcel({
       participantName: exportName.trim(),
       isEnglish,
@@ -699,12 +678,17 @@ export default function App() {
     });
     setShowExportModal(false);
     setToastInfo({
-      title: isEnglish ? "Excel report downloaded!" : "Excel-rapport gedownload!",
-      desc: isEnglish ? "Complete self-scan saved with overview, agenda and full checklist." : "Complete zelfscan opgeslagen met overzicht, agenda en volledige checklist.",
+      title: isEnglish ? "Excel export downloaded!" : "Excel-export gedownload!",
+      desc: isEnglish 
+        ? "Complete self-scan saved with category overview, agenda and group analysis compatibility." 
+        : "Complete zelfscan opgeslagen met categorie-overzicht, agenda en geschikt voor groepsanalyse.",
     });
     setExportToast(true);
     setTimeout(() => setExportToast(false), 3500);
   };
+
+  const handleExportGroupExcel = handleExportExcel;
+  const handleExportDetailedReportExcel = handleExportExcel;
 
   if (showGroupAnalysis) {
     return (
@@ -1418,10 +1402,10 @@ export default function App() {
         </p>
       </footer>
 
-      {/* Export Analysis Modal - 2-Column Split (Lean & Clean) */}
+      {/* Export Analysis Modal - Single Frame (Lean & Clean) */}
       {showExportModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="relative bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-4xl w-full p-6 sm:p-7 space-y-5 transition-colors max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-lg w-full p-6 sm:p-7 space-y-4 transition-colors max-h-[90vh] overflow-y-auto">
             {/* Close Button Top Right */}
             <button
               onClick={() => setShowExportModal(false)}
@@ -1431,125 +1415,90 @@ export default function App() {
               <X className="w-5 h-5" />
             </button>
 
-            {/* 2-Column Split */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch pt-2">
+            {/* Modal Header: Titel & Ondertitel */}
+            <div className="pr-8 space-y-1">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                {tLang.exportModalTitle}
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {tLang.exportModalSubtitle}
+              </p>
+            </div>
+
+            {/* 1 Enkel Kader met 2 PDF-knoppen en 1 Excel-optie */}
+            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 sm:p-6 flex flex-col space-y-5">
               
-              {/* LINKER HELFT: Zelfscan netjes vastleggen & bewaren */}
-              <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 sm:p-6 flex flex-col justify-between space-y-4">
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 shrink-0 mt-0.5">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-900 dark:text-white text-base">
-                        {tLang.exportLeftTitle}
-                      </h4>
-                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-normal mt-0.5">
-                        {tLang.exportLeftCaption}
-                      </p>
-                    </div>
-                  </div>
+              {/* 2 Knoppen voor PDF-export */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  onClick={() => {
+                    setShowExportModal(false);
+                    handleGenerateReport('full');
+                  }}
+                  className="flex items-center justify-center gap-2 bg-emerald-100 hover:bg-emerald-200 active:bg-emerald-300 text-slate-900 dark:bg-emerald-200 dark:hover:bg-emerald-100 dark:text-slate-950 font-semibold py-3 px-3 rounded-xl border border-emerald-300/70 shadow-md transition-colors text-xs sm:text-sm cursor-pointer"
+                >
+                  <Download className="w-4 h-4 shrink-0 text-slate-900 dark:text-slate-950" />
+                  <span>{tLang.exportPdfFullBtn}</span>
+                </button>
 
-                  {/* Knoppen 'volledige analyse' en 'alleen resultaten' naast elkaar zonder onderschrift */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    <button
-                      onClick={() => {
-                        setShowExportModal(false);
-                        handleGenerateReport('full');
-                      }}
-                      className="flex items-center justify-center gap-2 bg-emerald-100 hover:bg-emerald-200 active:bg-emerald-300 text-slate-900 dark:bg-emerald-200 dark:hover:bg-emerald-100 dark:text-slate-950 font-semibold py-3 px-3 rounded-xl border border-emerald-300/70 shadow-md transition-colors text-xs sm:text-sm cursor-pointer"
-                    >
-                      <Download className="w-4 h-4 shrink-0 text-slate-900 dark:text-slate-950" />
-                      <span>{tLang.exportPdfFullBtn}</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setShowExportModal(false);
-                        handleGenerateReport('results');
-                      }}
-                      className="flex items-center justify-center gap-2 bg-emerald-100 hover:bg-emerald-200 active:bg-emerald-300 text-slate-900 dark:bg-emerald-200 dark:hover:bg-emerald-100 dark:text-slate-950 font-semibold py-3 px-3 rounded-xl border border-emerald-300/70 shadow-md transition-colors text-xs sm:text-sm cursor-pointer"
-                    >
-                      <Download className="w-4 h-4 shrink-0 text-slate-900 dark:text-slate-950" />
-                      <span>{tLang.exportPdfResultsBtn}</span>
-                    </button>
-                  </div>
-
-                  {/* Excel-export met dezelfde opmaak als die in het rechter deel */}
-                  <button
-                    onClick={handleExportDetailedReportExcel}
-                    className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition-colors text-sm cursor-pointer"
-                  >
-                    <Download className="w-4 h-4 shrink-0" />
-                    <span>{tLang.exportExcelReportBtn}</span>
-                  </button>
-                </div>
+                <button
+                  onClick={() => {
+                    setShowExportModal(false);
+                    handleGenerateReport('results');
+                  }}
+                  className="flex items-center justify-center gap-2 bg-emerald-100 hover:bg-emerald-200 active:bg-emerald-300 text-slate-900 dark:bg-emerald-200 dark:hover:bg-emerald-100 dark:text-slate-950 font-semibold py-3 px-3 rounded-xl border border-emerald-300/70 shadow-md transition-colors text-xs sm:text-sm cursor-pointer"
+                >
+                  <Download className="w-4 h-4 shrink-0 text-slate-900 dark:text-slate-950" />
+                  <span>{tLang.exportPdfResultsBtn}</span>
+                </button>
               </div>
 
-              {/* RECHTER HELFT: Excel voor Groepsanalyse */}
-              <div className="bg-emerald-50/50 dark:bg-emerald-950/20 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 p-5 sm:p-6 flex flex-col justify-between space-y-4">
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 shrink-0 mt-0.5">
-                      <Users className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-900 dark:text-white text-base">
-                        {tLang.exportRightTitle}
-                      </h4>
-                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-normal mt-0.5">
-                        {tLang.exportRightCaption}
-                      </p>
-                    </div>
-                  </div>
+              {/* 1 Invoer voor naam met 1 knop voor het maken van de Excel-export */}
+              <div className="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    {tLang.exportExcelNamePrompt}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={tLang.exportExcelNamePlaceholder}
+                    value={exportName}
+                    onChange={e => setExportName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleExportExcel();
+                    }}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm transition-all"
+                  />
+                </div>
 
-                  {/* Naam Input t.b.v. Groepsanalyse */}
-                  <div className="space-y-1.5 pt-1">
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      {tLang.exportRightNamePrompt}
-                    </label>
-                    <input
-                      type="text"
-                      placeholder={tLang.exportRightNamePlaceholder}
-                      value={exportName}
-                      onChange={e => setExportName(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') handleExportGroupExcel();
-                      }}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm transition-all"
-                    />
-                  </div>
+                <button
+                  onClick={handleExportExcel}
+                  className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition-colors text-sm cursor-pointer"
+                >
+                  <Download className="w-4 h-4 shrink-0" />
+                  <span>{tLang.exportExcelDownloadBtn}</span>
+                </button>
 
-                  {/* Download Button voor Groepsanalyse */}
+                {/* Toelichting onder Excel-knop met direct daarachter de link naar de groepsanalyse */}
+                <div className="pt-1 text-xs text-slate-600 dark:text-slate-400 leading-relaxed flex flex-wrap items-center gap-1.5">
+                  <span>{tLang.exportExcelGroupNote}.</span>
                   <button
-                    onClick={handleExportGroupExcel}
-                    className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition-colors text-sm cursor-pointer"
+                    onClick={() => {
+                      setShowExportModal(false);
+                      setShowGroupAnalysis(true);
+                    }}
+                    className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 hover:underline font-semibold cursor-pointer"
                   >
-                    <Download className="w-4 h-4" />
-                    <span>{tLang.exportRightDownloadBtn}</span>
+                    <span>{tLang.openGroupAnalysisBtn}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </button>
-
-                  {/* Direct naar Groepsanalyse Link */}
-                  <div className="pt-1 flex justify-start">
-                    <button
-                      onClick={() => {
-                        setShowExportModal(false);
-                        setShowGroupAnalysis(true);
-                      }}
-                      className="text-emerald-700 dark:text-emerald-400 hover:underline font-semibold flex items-center gap-1.5 cursor-pointer text-xs"
-                    >
-                      <span>{tLang.openGroupAnalysisBtn}</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
                 </div>
               </div>
 
             </div>
 
             {/* Modal Footer */}
-            <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-700">
+            <div className="flex justify-end pt-1">
               <button
                 onClick={() => setShowExportModal(false)}
                 className="py-2.5 px-6 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-medium transition-colors cursor-pointer"

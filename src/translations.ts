@@ -51,11 +51,21 @@ export const translations = {
     publicatie: "Publicatie over De Vertrouwensboom:",
     auteur: "Auteur:",
     inzetZonderPercentage: "Inzet",
-    // 2-Column Export Modal (Lean & Clean)
-    exportLeftTitle: "Zelfscan vastleggen & bewaren",
-    exportLeftCaption: "Nette export voor de administratie.",
+    // Export Modal (Lean & Clean Single Frame)
+    exportModalTitle: "Exporteer de zelfscan",
+    exportModalSubtitle: "Geschikt voor jaarlijkse evaluatie en/of opname in het jaarverslag.",
     exportPdfFullBtn: "Volledige analyse (PDF)",
     exportPdfResultsBtn: "Alleen resultaten (PDF)",
+    exportExcelSectionLabel: "Excel-export (voor administratie en groepsanalyse)",
+    exportExcelNamePrompt: "Voer een naam in t.b.v. de Groepsanalyse:",
+    exportExcelNamePlaceholder: "Bijv. Opleiding X - Lid A",
+    exportExcelDownloadBtn: "Excel-bestand downloaden (.xlsx)",
+    exportExcelGroupNote: "Deze Excel kan worden ingeladen in de Groepsanalyse",
+    openGroupAnalysisBtn: "Direct naar Groepsanalyse",
+    closeBtn: "Sluiten",
+    // Backward compatibility keys
+    exportLeftTitle: "Zelfscan vastleggen & bewaren",
+    exportLeftCaption: "Nette export voor de administratie.",
     exportExcelReportBtn: "Excel-rapport (.xlsx)",
     exportRightTitle: "Excel voor groepsanalyse",
     exportRightCaption: "Export-functie voor Groepsanalyses.",
@@ -63,8 +73,6 @@ export const translations = {
     exportRightNamePlaceholder: "Bijv. Opleiding X - Lid A",
     exportRightNameHelp: "",
     exportRightDownloadBtn: "Download Excel voor groepsanalyse (.xlsx)",
-    openGroupAnalysisBtn: "Direct naar Groepsanalyse",
-    closeBtn: "Sluiten",
   },
   en: {
     title: "The Trust Tree for Quality Assurance",
@@ -118,11 +126,21 @@ export const translations = {
     publicatie: "Publication:",
     auteur: "Author:",
     inzetZonderPercentage: "Use of Inst.",
-    // 2-Column Export Modal (Lean & Clean)
-    exportLeftTitle: "Record & archive self-scan",
-    exportLeftCaption: "Clean export for administration.",
+    // Export Modal (Lean & Clean Single Frame)
+    exportModalTitle: "Export the self-scan",
+    exportModalSubtitle: "Suitable for annual evaluation and/or inclusion in the annual report.",
     exportPdfFullBtn: "Full analysis (PDF)",
     exportPdfResultsBtn: "Results only (PDF)",
+    exportExcelSectionLabel: "Excel export (for records and group analysis)",
+    exportExcelNamePrompt: "Enter a name for the Group Analysis:",
+    exportExcelNamePlaceholder: "E.g. Program X - Member A",
+    exportExcelDownloadBtn: "Download Excel file (.xlsx)",
+    exportExcelGroupNote: "This Excel can be imported into the Group Analysis",
+    openGroupAnalysisBtn: "Go to Group Analysis",
+    closeBtn: "Close",
+    // Backward compatibility keys
+    exportLeftTitle: "Record & archive self-scan",
+    exportLeftCaption: "Clean export for administration.",
     exportExcelReportBtn: "Excel report (.xlsx)",
     exportRightTitle: "Excel for group analysis",
     exportRightCaption: "Export feature for Group Analyses.",
@@ -130,7 +148,5 @@ export const translations = {
     exportRightNamePlaceholder: "E.g. Program X - Member A",
     exportRightNameHelp: "",
     exportRightDownloadBtn: "Download Excel for Group Analysis (.xlsx)",
-    openGroupAnalysisBtn: "Go to Group Analysis",
-    closeBtn: "Close",
   }
 };
