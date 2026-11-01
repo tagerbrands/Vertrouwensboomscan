@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { Category } from './data';
 
 export interface ScanActionDetail {
@@ -57,6 +57,19 @@ export function getParticipantColor(index: number): string {
   return PARTICIPANT_COLORS[index % PARTICIPANT_COLORS.length];
 }
 
+export function getCategoryRgb(id: string): string {
+  switch (id) {
+    case 'luk-kwaliteit': return 'F43F5E'; // rose-500
+    case 'portfoliocriteria': return 'F97316'; // orange-500
+    case 'kaders-procedures': return 'F59E0B'; // amber-500
+    case 'organisatie': return '10B981'; // emerald-500
+    case 'profiel-examinatoren': return '3B82F6'; // blue-500
+    case 'digitale-systemen': return 'A855F7'; // purple-500
+    case 'fraudebeleid': return 'D946EF'; // fuchsia-500
+    default: return '64748B'; // slate-500
+  }
+}
+
 /**
  * Creates the first overview tab in the Excel export showing complete information
  * organized per category: confidence, explanation/comment, and an itemized table
@@ -74,27 +87,57 @@ function createCategoryOverviewSheet(
   comments: Record<string, string>,
   actionDetails: Record<string, ScanActionDetail>
 ): XLSX.WorkSheet {
-  const rows: (string | number)[][] = [
-    [isEnglish ? "THE TRUST TREE: ASSURANCE PER CATEGORY" : "DE VERTROUWENSBOOM: BORGING PER CATEGORIE", "", "", "", "", ""],
-    [
-      isEnglish 
-        ? "Overview per category of trust level, instruments, status, notes/comments and action planning" 
-        : "Overzicht per categorie van vertrouwen, instrumenten, status, toelichting/opmerkingen en actieplanning",
-      "", "", "", "", ""
-    ],
-    [],
-    [
-      isEnglish ? "Respondent / Alias:" : "Respondent / Alias:",
-      participantName || (isEnglish ? "Anonymous" : "Anoniem"),
-      "",
-      isEnglish ? "Date:" : "Datum:",
-      displayDate,
-      ""
-    ],
-    []
-  ];
+  const rows: (string | number)[][] = [];
+  const merges: XLSX.Range[] = [];
+  const rowTypes: {
+    type: 'title' | 'subtitle' | 'meta' | 'catHeader' | 'stat' | 'tableHeader' | 'tableRow' | 'empty';
+    catId?: string;
+    textLength?: number;
+  }[] = [];
 
-  categories.forEach((cat, idx) => {
+  // Row 0: Title - Merged A1:E1 (left-aligned)
+  rows.push([
+    isEnglish ? "DE VERTROUWENSBOOM: BORGING PER CATEGORIE" : "DE VERTROUWENSBOOM: BORGING PER CATEGORIE",
+    "", "", "", ""
+  ]);
+  rowTypes.push({ type: 'title' });
+  merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 4 } });
+
+  // Row 1: Subtitle - Merged A2:E2 (left-aligned)
+  rows.push([
+    isEnglish 
+      ? "Overzicht per categorie van vertrouwen, instrumenten, status, toelichting/opmerkingen en actieplanning" 
+      : "Overzicht per categorie van vertrouwen, instrumenten, status, toelichting/opmerkingen en actieplanning",
+    "", "", "", ""
+  ]);
+  rowTypes.push({ type: 'subtitle' });
+  merges.push({ s: { r: 1, c: 0 }, e: { r: 1, c: 4 } });
+
+  // Row 2: Empty separator row
+  rows.push(["", "", "", "", ""]);
+  rowTypes.push({ type: 'empty' });
+
+  // Row 3: Respondent / Alias
+  rows.push([
+    isEnglish ? "Respondent / Alias:" : "Respondent / Alias:",
+    participantName || (isEnglish ? "Anonymous" : "Anoniem"),
+    "", "", ""
+  ]);
+  rowTypes.push({ type: 'meta' });
+
+  // Row 4: Datum on the row directly under Respondent / Alias
+  rows.push([
+    isEnglish ? "Date:" : "Datum:",
+    displayDate,
+    "", "", ""
+  ]);
+  rowTypes.push({ type: 'meta' });
+
+  // Row 5: Empty separator row before categories
+  rows.push(["", "", "", "", ""]);
+  rowTypes.push({ type: 'empty' });
+
+  categories.forEach((cat) => {
     const catInstruments = cat.elements.flatMap(e => e.instruments).filter(i => !checkedNietNodig[i.id]);
     const catTotal = catInstruments.length;
     const catDoeIk = catInstruments.filter(i => checkedDoeIk[i.id]).length;
@@ -103,39 +146,47 @@ function createCategoryOverviewSheet(
     const confPerc = Math.round((confScore / 5) * 100);
     const comment = comments[cat.id] || "";
 
-    // Category Header Banner
-    rows.push([
-      `${isEnglish ? "CATEGORY" : "CATEGORIE"} ${idx + 1}: ${cat.name.toUpperCase()}`,
-      "", "", "", "", ""
-    ]);
+    // Category Header Banner: e.g. KWALITEIT VAN LEERUITKOMSTEN (LUK)
+    const catHeaderRowIndex = rows.length;
+    rows.push([cat.name.toUpperCase(), "", "", "", ""]);
+    rowTypes.push({ type: 'catHeader', catId: cat.id });
+    merges.push({ s: { r: catHeaderRowIndex, c: 0 }, e: { r: catHeaderRowIndex, c: 4 } });
 
-    // Trust & deployment summary line
+    // Trust
     rows.push([
-      isEnglish ? "Level of Trust:" : "Vertrouwen:",
+      isEnglish ? "Trust:" : "Vertrouwen:",
       `${confScore} / 5 (${confPerc}%)`,
+      "", "", ""
+    ]);
+    rowTypes.push({ type: 'stat' });
+
+    // Use of instruments
+    rows.push([
       isEnglish ? "Use of instruments:" : "Inzet instrumentarium:",
       `${inzetPerc}% (${catDoeIk}/${catTotal} ${isEnglish ? "deployed" : "actief ingezet"})`,
-      "", ""
+      "", "", ""
     ]);
+    rowTypes.push({ type: 'stat' });
 
-    // Category qualitative comment
+    // Comment / Explanation
     rows.push([
       isEnglish ? "Notes / Explanation:" : "Toelichting / Opmerking:",
-      comment ? `"${comment}"` : (isEnglish ? "None entered" : "Geen opmerking ingevoerd"),
-      "", "", "", ""
+      comment ? `"${comment}"` : "",
+      "", "", ""
     ]);
+    rowTypes.push({ type: 'stat', textLength: comment.length });
 
     // Table Header
     rows.push([
-      isEnglish ? "Element" : "Element",
-      isEnglish ? "ID" : "ID",
       isEnglish ? "Instrument" : "Instrument",
+      "",
       isEnglish ? "Status" : "Status",
       isEnglish ? "Responsible (Owner)" : "Verantwoordelijke (Eigenaar)",
       isEnglish ? "Deadline" : "Deadline",
     ]);
+    rowTypes.push({ type: 'tableHeader' });
 
-    // Table rows per instrument in this category
+    // Table Rows
     cat.elements.forEach(elem => {
       elem.instruments.forEach(inst => {
         let statusText = isEnglish ? "Not specified" : "Niet ingevuld";
@@ -153,28 +204,167 @@ function createCategoryOverviewSheet(
 
         rows.push([
           elem.name,
-          inst.id,
           inst.text,
           statusText,
           owner,
           deadline,
         ]);
+        const maxLen = Math.max(
+          Math.ceil(inst.text.length / 52),
+          Math.ceil(elem.name.length / 20),
+          Math.ceil(owner.length / 24)
+        );
+        rowTypes.push({ type: 'tableRow', textLength: maxLen });
       });
     });
 
     // Empty separator row between categories
-    rows.push([]);
+    rows.push(["", "", "", "", ""]);
+    rowTypes.push({ type: 'empty' });
   });
 
   const ws = XLSX.utils.aoa_to_sheet(rows);
+
+  // Border styles
+  const thinBorder = {
+    top: { style: 'thin', color: { rgb: 'E2E8F0' } },
+    bottom: { style: 'thin', color: { rgb: 'E2E8F0' } },
+    left: { style: 'thin', color: { rgb: 'E2E8F0' } },
+    right: { style: 'thin', color: { rgb: 'E2E8F0' } }
+  };
+  const headerBorder = {
+    top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+    bottom: { style: 'medium', color: { rgb: '94A3B8' } },
+    left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+    right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+  };
+
+  // Base alignment: wrapText, vertical center, horizontal left
+  const baseAlignment = {
+    vertical: 'center',
+    horizontal: 'left',
+    wrapText: true
+  };
+
+  const whiteFill = {
+    patternType: 'solid',
+    fgColor: { rgb: 'FFFFFF' }
+  };
+
+  // Dimensions to make the entire worksheet white (including padding columns and rows)
+  const totalRows = rows.length;
+  const styledRowsCount = totalRows + 10;
+  const styledColsCount = 15; // columns A through O
+
+  // Apply styling to all cells in the sheet
+  for (let r = 0; r < styledRowsCount; r++) {
+    const meta = r < totalRows ? (rowTypes[r] || { type: 'empty' }) : { type: 'empty' as const };
+    const isCatHeader = meta.type === 'catHeader';
+    const catRgb = isCatHeader && meta.catId ? getCategoryRgb(meta.catId) : 'FFFFFF';
+
+    for (let c = 0; c < styledColsCount; c++) {
+      const cellRef = XLSX.utils.encode_cell({ r, c });
+      if (!ws[cellRef]) {
+        ws[cellRef] = { t: 's', v: '' };
+      }
+
+      if (isCatHeader && c < 5) {
+        // Category Header Banner: solid category color with bold white text
+        (ws[cellRef] as any).s = {
+          fill: { patternType: 'solid', fgColor: { rgb: catRgb } },
+          font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: 'FFFFFF' } },
+          alignment: baseAlignment
+        };
+      } else if (meta.type === 'title' && c < 5) {
+        (ws[cellRef] as any).s = {
+          fill: whiteFill,
+          font: { name: 'Calibri', sz: 12, bold: true, color: { rgb: '0F172A' } },
+          alignment: baseAlignment
+        };
+      } else if (meta.type === 'subtitle' && c < 5) {
+        (ws[cellRef] as any).s = {
+          fill: whiteFill,
+          font: { name: 'Calibri', sz: 10, bold: false, color: { rgb: '475569' } },
+          alignment: baseAlignment
+        };
+      } else if (meta.type === 'meta' && c < 5) {
+        const isBold = c === 0;
+        (ws[cellRef] as any).s = {
+          fill: whiteFill,
+          font: { name: 'Calibri', sz: 11, bold: isBold, color: { rgb: '0F172A' } },
+          alignment: baseAlignment
+        };
+      } else if (meta.type === 'tableHeader' && c < 5) {
+        (ws[cellRef] as any).s = {
+          fill: whiteFill,
+          font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: '0F172A' } },
+          alignment: baseAlignment,
+          border: headerBorder
+        };
+      } else if (meta.type === 'tableRow' && c < 5) {
+        (ws[cellRef] as any).s = {
+          fill: whiteFill,
+          font: { name: 'Calibri', sz: 10.5, bold: false, color: { rgb: '1E293B' } },
+          alignment: baseAlignment,
+          border: thinBorder
+        };
+      } else if (meta.type === 'stat' && c < 5) {
+        const isBold = c === 0;
+        (ws[cellRef] as any).s = {
+          fill: whiteFill,
+          font: { name: 'Calibri', sz: 11, bold: isBold, color: { rgb: '1E293B' } },
+          alignment: baseAlignment
+        };
+      } else {
+        // All other cells: solid white background
+        (ws[cellRef] as any).s = {
+          fill: whiteFill,
+          font: { name: 'Calibri', sz: 11, color: { rgb: 'FFFFFF' } },
+          alignment: baseAlignment
+        };
+      }
+    }
+  }
+
+  // Update sheet reference range to cover the styled white grid
+  ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: styledRowsCount - 1, c: styledColsCount - 1 } });
+  ws['!merges'] = merges;
   ws['!cols'] = [
-    { wch: 28 }, // Element
-    { wch: 10 }, // ID
-    { wch: 65 }, // Instrument Description
-    { wch: 18 }, // Status
-    { wch: 26 }, // Owner
-    { wch: 18 }, // Deadline
+    { wch: 24 }, // A: Instrument (Element naam)
+    { wch: 68 }, // B: Tekst van instrument
+    { wch: 16 }, // C: Status
+    { wch: 30 }, // D: Verantwoordelijke (Eigenaar)
+    { wch: 18 }, // E: Deadline
+    { wch: 12 }, // F
+    { wch: 12 }, // G
+    { wch: 12 }, // H
+    { wch: 12 }, // I
+    { wch: 12 }, // J
   ];
+
+  // Dynamically compute row heights to ensure all text is always fully visible
+  ws['!rows'] = rows.map((_, idx) => {
+    const meta = rowTypes[idx];
+    if (!meta) return { hpt: 20 };
+    if (meta.type === 'title') return { hpt: 26 };
+    if (meta.type === 'subtitle') return { hpt: 22 };
+    if (meta.type === 'catHeader') return { hpt: 26 };
+    if (meta.type === 'meta') return { hpt: 22 };
+    if (meta.type === 'stat') {
+      if (meta.textLength && meta.textLength > 60) {
+        const lines = Math.max(1, Math.ceil(meta.textLength / 60));
+        return { hpt: Math.max(22, lines * 16 + 8) };
+      }
+      return { hpt: 22 };
+    }
+    if (meta.type === 'tableHeader') return { hpt: 22 };
+    if (meta.type === 'tableRow') {
+      const lines = meta.textLength || 1;
+      return { hpt: Math.max(24, lines * 16 + 8) };
+    }
+    if (meta.type === 'empty') return { hpt: 14 };
+    return { hpt: 20 };
+  });
 
   return ws;
 }
