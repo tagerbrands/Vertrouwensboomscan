@@ -879,8 +879,8 @@ export default function App() {
 
           <div className="space-y-4">
             {categories.map(category => (
-              <div key={category.id} id={`category-${category.id}`} className={`rounded-xl overflow-hidden border ${category.borderColorClass} shadow-sm ${category.containerColorClass} print-break-avoid scroll-mt-24 transition-colors`}>
-                <div className={`${category.colorClass} px-4 py-2 border-b ${category.borderColorClass} flex flex-col md:flex-row md:items-center justify-between gap-2 transition-colors`}>
+              <div key={category.id} id={`category-${category.id}`} className={`rounded-xl border ${category.borderColorClass} shadow-sm ${category.containerColorClass} print-break-avoid scroll-mt-24 transition-colors`}>
+                <div className={`${category.colorClass} px-4 py-2 rounded-t-xl border-b ${category.borderColorClass} flex flex-col md:flex-row md:items-center justify-between gap-2 transition-colors`}>
                   <h3 className={`text-lg font-bold ${category.textColorClass}`}>{category.name}</h3>
                   
                   <div className="flex items-center gap-3 bg-white/60 dark:bg-slate-800/60 px-3 py-1.5 rounded-lg backdrop-blur-sm">

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import * as htmlToImage from 'html-to-image';
 import {
   ArrowLeft,
@@ -11,7 +11,8 @@ import {
   User,
   Calendar,
   RotateCcw,
-  CheckCircle2
+  CheckCircle2,
+  MessageSquare
 } from 'lucide-react';
 import {
   Radar,
@@ -105,6 +106,7 @@ export const GroupAnalysis: React.FC<GroupAnalysisProps> = ({
   const [groupActionDetails, setGroupActionDetails] = useState<Record<string, { owner: string; deadline: string }>>(() => loadState('group_actionDetails', {}));
   const [showActionDetails, setShowActionDetails] = useState<boolean>(() => loadState('group_showActionDetails', true));
   const [groupAgendaOrder, setGroupAgendaOrder] = useState<string[]>(() => loadState('group_agendaOrder', []));
+  const [groupCategoryComments, setGroupCategoryComments] = useState<Record<string, string>>(() => loadState('group_categoryComments', {}));
 
   // Save consensus state to localStorage
   useEffect(() => { localStorage.setItem('group_consensus_overrides_v1', JSON.stringify(groupConsensusOverrides)); }, [groupConsensusOverrides]);
@@ -112,6 +114,16 @@ export const GroupAnalysis: React.FC<GroupAnalysisProps> = ({
   useEffect(() => { localStorage.setItem('group_actionDetails', JSON.stringify(groupActionDetails)); }, [groupActionDetails]);
   useEffect(() => { localStorage.setItem('group_showActionDetails', JSON.stringify(showActionDetails)); }, [showActionDetails]);
   useEffect(() => { localStorage.setItem('group_agendaOrder', JSON.stringify(groupAgendaOrder)); }, [groupAgendaOrder]);
+  useEffect(() => { localStorage.setItem('group_categoryComments', JSON.stringify(groupCategoryComments)); }, [groupCategoryComments]);
+
+  // Helper to bundle comments from all loaded participant scans for a category:
+  // format: A: "opmerking" [enter] B: "opmerking" [enter] C: "opmerking", etc.
+  const getBundledComments = useCallback((categoryId: string, scanList = scans): string => {
+    return scanList
+      .filter(s => s.categoryStats[categoryId]?.comment && s.categoryStats[categoryId].comment.trim().length > 0)
+      .map(s => `${s.name}: "${s.categoryStats[categoryId].comment!.trim()}"`)
+      .join('\n');
+  }, [scans]);
 
   const categories = isEnglish ? categoriesEn : categoriesNl;
 
@@ -189,8 +201,23 @@ export const GroupAnalysis: React.FC<GroupAnalysisProps> = ({
         }
       }
       if (newScans.length > 0) {
-        setScans(prev => [...prev, ...newScans]);
+        const combinedScans = [...scans, ...newScans];
+        setScans(combinedScans);
         setGroupConsensusOverrides({});
+
+        // Auto-bundle comments from all loaded participant scans into category comments:
+        // format: A: "opmerking" [enter] B: "opmerking" [enter] C: "opmerking", etc.
+        setGroupCategoryComments(prev => {
+          const next = { ...prev };
+          categories.forEach(cat => {
+            const bundled = combinedScans
+              .filter(s => s.categoryStats[cat.id]?.comment && s.categoryStats[cat.id].comment.trim().length > 0)
+              .map(s => `${s.name}: "${s.categoryStats[cat.id].comment!.trim()}"`)
+              .join('\n');
+            next[cat.id] = bundled;
+          });
+          return next;
+        });
       }
     } catch (err) {
       console.error("Error parsing uploaded Excel files:", err);
@@ -203,7 +230,19 @@ export const GroupAnalysis: React.FC<GroupAnalysisProps> = ({
 
   // Remove a scan
   const handleRemoveScan = (id: string) => {
-    setScans(prev => prev.filter(s => s.id !== id));
+    const remaining = scans.filter(s => s.id !== id);
+    setScans(remaining);
+    setGroupCategoryComments(prev => {
+      const next = { ...prev };
+      categories.forEach(cat => {
+        const bundled = remaining
+          .filter(s => s.categoryStats[cat.id]?.comment && s.categoryStats[cat.id].comment.trim().length > 0)
+          .map(s => `${s.name}: "${s.categoryStats[cat.id].comment!.trim()}"`)
+          .join('\n');
+        next[cat.id] = bundled;
+      });
+      return next;
+    });
   };
 
   // Clear all scans
@@ -211,8 +250,10 @@ export const GroupAnalysis: React.FC<GroupAnalysisProps> = ({
     if (confirm(isEnglish ? "Remove all uploaded scans?" : "Alle ingeladen scans verwijderen?")) {
       setScans([]);
       setGroupConsensusOverrides({});
+      setGroupCategoryComments({});
       try {
         localStorage.removeItem('group_scans');
+        localStorage.removeItem('group_categoryComments');
       } catch {
         // ignore
       }
@@ -226,6 +267,12 @@ export const GroupAnalysis: React.FC<GroupAnalysisProps> = ({
       setGroupConfidence({});
       setGroupActionDetails({});
       setGroupAgendaOrder([]);
+      setGroupCategoryComments({});
+      try {
+        localStorage.removeItem('group_categoryComments');
+      } catch {
+        // ignore
+      }
     }
   };
 
@@ -588,15 +635,25 @@ export const GroupAnalysis: React.FC<GroupAnalysisProps> = ({
       const catTotal = catInstruments.filter(inst => !effectiveGroupNietNodig[inst.id]).length;
       const catDoeIk = catInstruments.filter(inst => effectiveGroupDoeIk[inst.id]).length;
       const percentage = catTotal > 0 ? Math.round((catDoeIk / catTotal) * 100) : 0;
+      const commentText = groupCategoryComments[category.id] !== undefined
+        ? groupCategoryComments[category.id]
+        : getBundledComments(category.id);
+
       return `
         <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 avoid-break">
           <div class="flex justify-between items-center mb-1.5">
             <span class="font-bold text-slate-800">${category.name}</span>
             <span class="font-bold ${percentage >= 75 ? 'text-emerald-600' : percentage >= 50 ? 'text-amber-500' : 'text-rose-500'}">${percentage}% (${catDoeIk}/${catTotal})</span>
           </div>
-          <div class="w-full bg-slate-200 rounded-full h-2">
+          <div class="w-full bg-slate-200 rounded-full h-2 mb-1.5">
             <div class="h-2 rounded-full ${percentage >= 75 ? 'bg-emerald-500' : percentage >= 50 ? 'bg-amber-500' : 'bg-rose-500'}" style="width: ${percentage}%"></div>
           </div>
+          ${commentText && commentText.trim() ? `
+            <div class="mt-2 text-xs text-slate-700 bg-white p-2 rounded border border-slate-200">
+              <span class="font-bold text-slate-800">${isEnglish ? 'Comments / Notes:' : 'Opmerkingen / Toelichting:'}</span>
+              <p class="whitespace-pre-line mt-0.5 text-slate-600 leading-relaxed">${commentText}</p>
+            </div>
+          ` : ''}
         </div>
       `;
     }).join('')}
@@ -1097,10 +1154,10 @@ export const GroupAnalysis: React.FC<GroupAnalysisProps> = ({
                     <div
                       key={category.id}
                       id={`category-${category.id}`}
-                      className={`rounded-xl overflow-hidden border ${category.borderColorClass} shadow-sm ${category.containerColorClass} transition-colors`}
+                      className={`rounded-xl border ${category.borderColorClass} shadow-sm ${category.containerColorClass} transition-colors`}
                     >
                       {/* Category Header */}
-                      <div className={`${category.colorClass} px-4 py-2.5 border-b ${category.borderColorClass} flex flex-col md:flex-row md:items-center justify-between gap-3 transition-colors`}>
+                      <div className={`${category.colorClass} px-4 py-2.5 rounded-t-xl border-b ${category.borderColorClass} flex flex-col md:flex-row md:items-center justify-between gap-3 transition-colors`}>
                         <h3 className={`text-lg font-bold ${category.textColorClass}`}>
                           {category.name}
                         </h3>
@@ -1163,7 +1220,7 @@ export const GroupAnalysis: React.FC<GroupAnalysisProps> = ({
                             )}
 
                             <div className="space-y-2">
-                              {element.instruments.map((instrument) => {
+                              {element.instruments.map((instrument, instIdx) => {
                                 const votesDoeIk: ParticipantScan[] = [];
                                 const votesVergtActie: ParticipantScan[] = [];
                                 const votesNietNodig: ParticipantScan[] = [];
@@ -1227,7 +1284,7 @@ export const GroupAnalysis: React.FC<GroupAnalysisProps> = ({
                                               </div>
 
                                               {/* Hover detail card */}
-                                              <div className="absolute left-0 sm:left-auto sm:right-0 bottom-full mb-2 hidden group-hover/alert:block z-40 w-72 sm:w-80 p-3 rounded-xl bg-white dark:bg-slate-800 shadow-2xl border border-amber-300 dark:border-amber-700 text-xs text-slate-800 dark:text-slate-100 pointer-events-none transition-all">
+                                              <div className={`absolute left-0 sm:left-auto sm:right-0 ${elemIdx === 0 && instIdx <= 1 ? 'top-full mt-2' : 'bottom-full mb-2'} hidden group-hover/alert:block z-50 w-72 sm:w-80 p-3 rounded-xl bg-white dark:bg-slate-800 shadow-2xl border border-amber-300 dark:border-amber-700 text-xs text-slate-800 dark:text-slate-100 pointer-events-none transition-all`}>
                                                 <div className="flex items-center gap-1.5 font-bold text-amber-600 dark:text-amber-400 border-b border-amber-200 dark:border-amber-800/60 pb-1.5 mb-2">
                                                   <AlertTriangle className="w-4 h-4 shrink-0" />
                                                   <span>
@@ -1312,7 +1369,7 @@ export const GroupAnalysis: React.FC<GroupAnalysisProps> = ({
                                             </div>
 
                                             {/* Hover detail card showing who chose 'doen we' */}
-                                            <div className="absolute right-0 bottom-full mb-2 hidden group-hover/bar:block z-40 w-64 sm:w-72 p-2.5 rounded-xl bg-white dark:bg-slate-800 shadow-2xl border border-emerald-300 dark:border-emerald-700 text-xs text-slate-800 dark:text-slate-100 pointer-events-none transition-all">
+                                            <div className={`absolute right-0 ${elemIdx === 0 && instIdx <= 1 ? 'top-full mt-2' : 'bottom-full mb-2'} hidden group-hover/bar:block z-50 w-64 sm:w-72 p-2.5 rounded-xl bg-white dark:bg-slate-800 shadow-2xl border border-emerald-300 dark:border-emerald-700 text-xs text-slate-800 dark:text-slate-100 pointer-events-none transition-all`}>
                                               <div className="flex items-center justify-between border-b border-emerald-200 dark:border-emerald-800/60 pb-1.5 mb-2 font-bold text-emerald-700 dark:text-emerald-400">
                                                 <div className="flex items-center gap-1.5">
                                                   <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
@@ -1418,6 +1475,31 @@ export const GroupAnalysis: React.FC<GroupAnalysisProps> = ({
                             </div>
                           </div>
                         ))}
+                      </div>
+
+                      {/* Category Comments in Group Analysis (bundled from loaded participant scans) */}
+                      <div className="px-4 py-3 bg-white/40 dark:bg-slate-800/40 border-t border-black/5 dark:border-white/5 rounded-b-xl">
+                        <div className="flex items-start gap-2.5">
+                          <MessageSquare className="w-4 h-4 text-slate-400 dark:text-slate-500 mt-1 shrink-0" />
+                          <div className="flex-1 space-y-1.5">
+                            <div className="flex items-center justify-between flex-wrap gap-2">
+                              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                {isEnglish ? "Comments & Explanations:" : "Opmerkingen & Toelichting:"}
+                              </label>
+                              {scans.some(s => s.categoryStats[category.id]?.comment?.trim()) && (
+                                <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/60">
+                                  {isEnglish ? "Bundled from loaded scans" : "Gebundeld uit ingeladen scans"}
+                                </span>
+                              )}
+                            </div>
+                            <textarea
+                              value={groupCategoryComments[category.id] !== undefined ? groupCategoryComments[category.id] : getBundledComments(category.id)}
+                              onChange={(e) => setGroupCategoryComments(prev => ({ ...prev, [category.id]: e.target.value }))}
+                              placeholder={isEnglish ? `Comments for ${category.name}...` : `Opmerkingen voor ${category.name}...`}
+                              className="w-full text-xs sm:text-sm bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 min-h-[75px] focus:outline-none focus:ring-2 focus:ring-slate-400 dark:focus:ring-slate-500 resize-y text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 leading-relaxed font-sans"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );

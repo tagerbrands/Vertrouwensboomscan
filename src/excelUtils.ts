@@ -58,6 +58,128 @@ export function getParticipantColor(index: number): string {
 }
 
 /**
+ * Creates the first overview tab in the Excel export showing complete information
+ * organized per category: confidence, explanation/comment, and an itemized table
+ * with status ('doen we', 'vergt actie', 'niet nodig'), owner, and deadline.
+ */
+function createCategoryOverviewSheet(
+  categories: Category[],
+  isEnglish: boolean,
+  participantName: string,
+  displayDate: string,
+  checkedDoeIk: Record<string, boolean>,
+  checkedVergtActie: Record<string, boolean>,
+  checkedNietNodig: Record<string, boolean>,
+  confidence: Record<string, number>,
+  comments: Record<string, string>,
+  actionDetails: Record<string, ScanActionDetail>
+): XLSX.WorkSheet {
+  const rows: (string | number)[][] = [
+    [isEnglish ? "THE TRUST TREE: ASSURANCE PER CATEGORY" : "DE VERTROUWENSBOOM: BORGING PER CATEGORIE", "", "", "", "", ""],
+    [
+      isEnglish 
+        ? "Overview per category of trust level, instruments, status, notes/comments and action planning" 
+        : "Overzicht per categorie van vertrouwen, instrumenten, status, toelichting/opmerkingen en actieplanning",
+      "", "", "", "", ""
+    ],
+    [],
+    [
+      isEnglish ? "Respondent / Alias:" : "Respondent / Alias:",
+      participantName || (isEnglish ? "Anonymous" : "Anoniem"),
+      "",
+      isEnglish ? "Date:" : "Datum:",
+      displayDate,
+      ""
+    ],
+    []
+  ];
+
+  categories.forEach((cat, idx) => {
+    const catInstruments = cat.elements.flatMap(e => e.instruments).filter(i => !checkedNietNodig[i.id]);
+    const catTotal = catInstruments.length;
+    const catDoeIk = catInstruments.filter(i => checkedDoeIk[i.id]).length;
+    const inzetPerc = catTotal > 0 ? Math.round((catDoeIk / catTotal) * 100) : 0;
+    const confScore = confidence[cat.id] || 0;
+    const confPerc = Math.round((confScore / 5) * 100);
+    const comment = comments[cat.id] || "";
+
+    // Category Header Banner
+    rows.push([
+      `${isEnglish ? "CATEGORY" : "CATEGORIE"} ${idx + 1}: ${cat.name.toUpperCase()}`,
+      "", "", "", "", ""
+    ]);
+
+    // Trust & deployment summary line
+    rows.push([
+      isEnglish ? "Level of Trust:" : "Vertrouwen:",
+      `${confScore} / 5 (${confPerc}%)`,
+      isEnglish ? "Use of instruments:" : "Inzet instrumentarium:",
+      `${inzetPerc}% (${catDoeIk}/${catTotal} ${isEnglish ? "deployed" : "actief ingezet"})`,
+      "", ""
+    ]);
+
+    // Category qualitative comment
+    rows.push([
+      isEnglish ? "Notes / Explanation:" : "Toelichting / Opmerking:",
+      comment ? `"${comment}"` : (isEnglish ? "None entered" : "Geen opmerking ingevoerd"),
+      "", "", "", ""
+    ]);
+
+    // Table Header
+    rows.push([
+      isEnglish ? "Element" : "Element",
+      isEnglish ? "ID" : "ID",
+      isEnglish ? "Instrument" : "Instrument",
+      isEnglish ? "Status" : "Status",
+      isEnglish ? "Responsible (Owner)" : "Verantwoordelijke (Eigenaar)",
+      isEnglish ? "Deadline" : "Deadline",
+    ]);
+
+    // Table rows per instrument in this category
+    cat.elements.forEach(elem => {
+      elem.instruments.forEach(inst => {
+        let statusText = isEnglish ? "Not specified" : "Niet ingevuld";
+        if (checkedDoeIk[inst.id]) {
+          statusText = isEnglish ? "We do this" : "Doen we";
+        } else if (checkedVergtActie[inst.id]) {
+          statusText = isEnglish ? "Requires action" : "Vergt actie";
+        } else if (checkedNietNodig[inst.id]) {
+          statusText = isEnglish ? "Not needed" : "Niet nodig";
+        }
+
+        const details = (actionDetails[inst.id] || {}) as any;
+        const owner = details.who || details.owner || "";
+        const deadline = details.deadline || "";
+
+        rows.push([
+          elem.name,
+          inst.id,
+          inst.text,
+          statusText,
+          owner,
+          deadline,
+        ]);
+      });
+    });
+
+    // Empty separator row between categories
+    rows.push([]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [
+    { wch: 28 }, // Element
+    { wch: 10 }, // ID
+    { wch: 65 }, // Instrument Description
+    { wch: 18 }, // Status
+    { wch: 26 }, // Owner
+    { wch: 18 }, // Deadline
+  ];
+
+  return ws;
+}
+
+/**
  * Export a single completed scan to an organized, readable Excel file.
  */
 export function exportScanToExcel(data: ExportScanData): void {
@@ -247,6 +369,21 @@ export function exportScanToExcel(data: ExportScanData): void {
     ["TOTAL_NIET_NODIG", totalNietNodig],
   ]);
 
+  // Sheet 1: Nieuw eerste tabblad: Borging per Categorie (alles overzichtelijk per categorie)
+  const wsCategoryOverview = createCategoryOverviewSheet(
+    categories,
+    isEnglish,
+    participantName,
+    displayDate,
+    checkedDoeIk,
+    checkedVergtActie,
+    checkedNietNodig,
+    confidence,
+    comments,
+    actionDetails
+  );
+
+  XLSX.utils.book_append_sheet(wb, wsCategoryOverview, isEnglish ? "Assurance per Category" : "Borging per Categorie");
   XLSX.utils.book_append_sheet(wb, wsOverzicht, isEnglish ? "Summary" : "Overzicht");
   XLSX.utils.book_append_sheet(wb, wsInstrumenten, isEnglish ? "Instruments" : "Instrumenten");
   XLSX.utils.book_append_sheet(wb, wsRaw, "RawData");
@@ -739,7 +876,22 @@ export function exportDetailedReportToExcel(data: DetailedReportExcelData): void
     ["TOTAL_NIET_NODIG", totalNietNodig],
   ]);
 
-  // Append all sheets
+  // Sheet 1: Nieuw eerste tabblad: Borging per Categorie (alles overzichtelijk per categorie)
+  const wsCategoryOverview = createCategoryOverviewSheet(
+    categories,
+    isEnglish,
+    participantName,
+    displayDate,
+    checkedDoeIk,
+    checkedVergtActie,
+    checkedNietNodig,
+    confidence,
+    comments,
+    actionDetails
+  );
+
+  // Append all sheets with wsCategoryOverview as first tab
+  XLSX.utils.book_append_sheet(wb, wsCategoryOverview, isEnglish ? "Assurance per Category" : "Borging per Categorie");
   XLSX.utils.book_append_sheet(wb, wsSummary, isEnglish ? "Summary & Results" : "Overzicht & Resultaten");
   XLSX.utils.book_append_sheet(wb, wsAgenda, isEnglish ? "Quality Agenda" : "Borgingsagenda");
   XLSX.utils.book_append_sheet(wb, wsAttention, isEnglish ? "Attention Points" : "Aandachtspunten");
