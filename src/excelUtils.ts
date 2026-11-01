@@ -59,7 +59,7 @@ export function getParticipantColor(index: number): string {
 
 export function getCategoryRgb(id: string): string {
   switch (id) {
-    case 'luk-kwaliteit': return 'F43F5E'; // rose-500
+    case 'luk-kwaliteit': return 'EF4444'; // rose/red banner as in screenshot
     case 'portfoliocriteria': return 'F97316'; // orange-500
     case 'kaders-procedures': return 'F59E0B'; // amber-500
     case 'organisatie': return '10B981'; // emerald-500
@@ -67,6 +67,19 @@ export function getCategoryRgb(id: string): string {
     case 'digitale-systemen': return 'A855F7'; // purple-500
     case 'fraudebeleid': return 'D946EF'; // fuchsia-500
     default: return '64748B'; // slate-500
+  }
+}
+
+export function getCategoryLightRgb(id: string): string {
+  switch (id) {
+    case 'luk-kwaliteit': return 'FFE4E6'; // pastel rose-100 as in screenshot
+    case 'portfoliocriteria': return 'FFEDD5'; // pastel orange-100 as in screenshot
+    case 'kaders-procedures': return 'FEF3C7'; // pastel amber-100
+    case 'organisatie': return 'D1FAE5'; // pastel emerald-100
+    case 'profiel-examinatoren': return 'DBEAFE'; // pastel blue-100
+    case 'digitale-systemen': return 'F3E8FF'; // pastel purple-100
+    case 'fraudebeleid': return 'FAE8FF'; // pastel fuchsia-100
+    default: return 'F1F5F9'; // pastel slate-100
   }
 }
 
@@ -93,6 +106,7 @@ function createCategoryOverviewSheet(
     type: 'title' | 'subtitle' | 'meta' | 'catHeader' | 'stat' | 'tableHeader' | 'tableRow' | 'empty';
     catId?: string;
     textLength?: number;
+    metaRowIndex?: number;
   }[] = [];
 
   // Row 0: Title - Merged A1:E1 (left-aligned)
@@ -103,7 +117,7 @@ function createCategoryOverviewSheet(
   rowTypes.push({ type: 'title' });
   merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 4 } });
 
-  // Row 1: Subtitle - Merged A2:E2 (left-aligned)
+  // Row 1: Subtitle - Merged A2:E2 (left-aligned with black bottom underline)
   rows.push([
     isEnglish 
       ? "Overzicht per categorie van vertrouwen, instrumenten, status, toelichting/opmerkingen en actieplanning" 
@@ -117,21 +131,21 @@ function createCategoryOverviewSheet(
   rows.push(["", "", "", "", ""]);
   rowTypes.push({ type: 'empty' });
 
-  // Row 3: Respondent / Alias
+  // Row 3: Respondent / Alias (Metadata card row 0)
   rows.push([
     isEnglish ? "Respondent / Alias:" : "Respondent / Alias:",
     participantName || (isEnglish ? "Anonymous" : "Anoniem"),
     "", "", ""
   ]);
-  rowTypes.push({ type: 'meta' });
+  rowTypes.push({ type: 'meta', metaRowIndex: 0 });
 
-  // Row 4: Datum on the row directly under Respondent / Alias
+  // Row 4: Datum on the row directly under Respondent / Alias (Metadata card row 1)
   rows.push([
     isEnglish ? "Date:" : "Datum:",
     displayDate,
     "", "", ""
   ]);
-  rowTypes.push({ type: 'meta' });
+  rowTypes.push({ type: 'meta', metaRowIndex: 1 });
 
   // Row 5: Empty separator row before categories
   rows.push(["", "", "", "", ""]);
@@ -158,7 +172,7 @@ function createCategoryOverviewSheet(
       `${confScore} / 5 (${confPerc}%)`,
       "", "", ""
     ]);
-    rowTypes.push({ type: 'stat' });
+    rowTypes.push({ type: 'stat', catId: cat.id });
 
     // Use of instruments
     rows.push([
@@ -166,7 +180,7 @@ function createCategoryOverviewSheet(
       `${inzetPerc}% (${catDoeIk}/${catTotal} ${isEnglish ? "deployed" : "actief ingezet"})`,
       "", "", ""
     ]);
-    rowTypes.push({ type: 'stat' });
+    rowTypes.push({ type: 'stat', catId: cat.id });
 
     // Comment / Explanation
     rows.push([
@@ -174,9 +188,10 @@ function createCategoryOverviewSheet(
       comment ? `"${comment}"` : "",
       "", "", ""
     ]);
-    rowTypes.push({ type: 'stat', textLength: comment.length });
+    rowTypes.push({ type: 'stat', catId: cat.id, textLength: comment.length });
 
-    // Table Header
+    // Table Header (with A and B merged for Instrument)
+    const tableHeaderRowIndex = rows.length;
     rows.push([
       isEnglish ? "Instrument" : "Instrument",
       "",
@@ -184,7 +199,8 @@ function createCategoryOverviewSheet(
       isEnglish ? "Responsible (Owner)" : "Verantwoordelijke (Eigenaar)",
       isEnglish ? "Deadline" : "Deadline",
     ]);
-    rowTypes.push({ type: 'tableHeader' });
+    rowTypes.push({ type: 'tableHeader', catId: cat.id });
+    merges.push({ s: { r: tableHeaderRowIndex, c: 0 }, e: { r: tableHeaderRowIndex, c: 1 } });
 
     // Table Rows
     cat.elements.forEach(elem => {
@@ -214,7 +230,7 @@ function createCategoryOverviewSheet(
           Math.ceil(elem.name.length / 20),
           Math.ceil(owner.length / 24)
         );
-        rowTypes.push({ type: 'tableRow', textLength: maxLen });
+        rowTypes.push({ type: 'tableRow', catId: cat.id, textLength: maxLen });
       });
     });
 
@@ -225,30 +241,16 @@ function createCategoryOverviewSheet(
 
   const ws = XLSX.utils.aoa_to_sheet(rows);
 
-  // Border styles
-  const thinBorder = {
-    top: { style: 'thin', color: { rgb: 'E2E8F0' } },
-    bottom: { style: 'thin', color: { rgb: 'E2E8F0' } },
-    left: { style: 'thin', color: { rgb: 'E2E8F0' } },
-    right: { style: 'thin', color: { rgb: 'E2E8F0' } }
-  };
-  const headerBorder = {
-    top: { style: 'thin', color: { rgb: 'CBD5E1' } },
-    bottom: { style: 'medium', color: { rgb: '94A3B8' } },
-    left: { style: 'thin', color: { rgb: 'CBD5E1' } },
-    right: { style: 'thin', color: { rgb: 'CBD5E1' } }
-  };
+  // Border styles matching image
+  const blackThin = { style: 'thin', color: { rgb: '000000' } };
+  const greyFill = { patternType: 'solid', fgColor: { rgb: 'D9D9D9' } };
+  const whiteFill = { patternType: 'solid', fgColor: { rgb: 'FFFFFF' } };
 
   // Base alignment: wrapText, vertical center, horizontal left
   const baseAlignment = {
     vertical: 'center',
     horizontal: 'left',
     wrapText: true
-  };
-
-  const whiteFill = {
-    patternType: 'solid',
-    fgColor: { rgb: 'FFFFFF' }
   };
 
   // Dimensions to make the entire worksheet white (including padding columns and rows)
@@ -261,6 +263,7 @@ function createCategoryOverviewSheet(
     const meta = r < totalRows ? (rowTypes[r] || { type: 'empty' }) : { type: 'empty' as const };
     const isCatHeader = meta.type === 'catHeader';
     const catRgb = isCatHeader && meta.catId ? getCategoryRgb(meta.catId) : 'FFFFFF';
+    const catLightRgb = meta.catId ? getCategoryLightRgb(meta.catId) : 'FFFFFF';
 
     for (let c = 0; c < styledColsCount; c++) {
       const cellRef = XLSX.utils.encode_cell({ r, c });
@@ -269,51 +272,82 @@ function createCategoryOverviewSheet(
       }
 
       if (isCatHeader && c < 5) {
-        // Category Header Banner: solid category color with bold white text
+        // Category Header Banner: solid category color with bold white text and black border
         (ws[cellRef] as any).s = {
           fill: { patternType: 'solid', fgColor: { rgb: catRgb } },
           font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: 'FFFFFF' } },
-          alignment: baseAlignment
+          alignment: baseAlignment,
+          border: {
+            top: blackThin,
+            bottom: blackThin,
+            left: c === 0 ? blackThin : undefined,
+            right: c === 4 ? blackThin : undefined
+          }
         };
       } else if (meta.type === 'title' && c < 5) {
         (ws[cellRef] as any).s = {
           fill: whiteFill,
-          font: { name: 'Calibri', sz: 12, bold: true, color: { rgb: '0F172A' } },
+          font: { name: 'Calibri', sz: 12, bold: true, color: { rgb: '000000' } },
           alignment: baseAlignment
         };
       } else if (meta.type === 'subtitle' && c < 5) {
         (ws[cellRef] as any).s = {
           fill: whiteFill,
-          font: { name: 'Calibri', sz: 10, bold: false, color: { rgb: '475569' } },
-          alignment: baseAlignment
+          font: { name: 'Calibri', sz: 10, bold: false, color: { rgb: '334155' } },
+          alignment: baseAlignment,
+          border: {
+            bottom: blackThin
+          }
         };
       } else if (meta.type === 'meta' && c < 5) {
+        const isRespondentRow = meta.metaRowIndex === 0;
+        const isDatumRow = meta.metaRowIndex === 1;
         const isBold = c === 0;
         (ws[cellRef] as any).s = {
-          fill: whiteFill,
-          font: { name: 'Calibri', sz: 11, bold: isBold, color: { rgb: '0F172A' } },
-          alignment: baseAlignment
-        };
-      } else if (meta.type === 'tableHeader' && c < 5) {
-        (ws[cellRef] as any).s = {
-          fill: whiteFill,
-          font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: '0F172A' } },
+          fill: greyFill,
+          font: { name: 'Calibri', sz: 11, bold: isBold, color: { rgb: '000000' } },
           alignment: baseAlignment,
-          border: headerBorder
-        };
-      } else if (meta.type === 'tableRow' && c < 5) {
-        (ws[cellRef] as any).s = {
-          fill: whiteFill,
-          font: { name: 'Calibri', sz: 10.5, bold: false, color: { rgb: '1E293B' } },
-          alignment: baseAlignment,
-          border: thinBorder
+          border: {
+            top: isRespondentRow ? blackThin : undefined,
+            bottom: isDatumRow ? blackThin : undefined,
+            left: c === 0 ? blackThin : undefined,
+            right: c === 4 ? blackThin : undefined
+          }
         };
       } else if (meta.type === 'stat' && c < 5) {
         const isBold = c === 0;
         (ws[cellRef] as any).s = {
-          fill: whiteFill,
-          font: { name: 'Calibri', sz: 11, bold: isBold, color: { rgb: '1E293B' } },
-          alignment: baseAlignment
+          fill: { patternType: 'solid', fgColor: { rgb: catLightRgb } },
+          font: { name: 'Calibri', sz: 11, bold: isBold, color: { rgb: '000000' } },
+          alignment: baseAlignment,
+          border: {
+            left: c === 0 ? blackThin : undefined,
+            right: c === 4 ? blackThin : undefined
+          }
+        };
+      } else if (meta.type === 'tableHeader' && c < 5) {
+        (ws[cellRef] as any).s = {
+          fill: { patternType: 'solid', fgColor: { rgb: catLightRgb } },
+          font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: '000000' } },
+          alignment: baseAlignment,
+          border: {
+            top: blackThin,
+            bottom: blackThin,
+            left: (c === 0 || c >= 2) ? blackThin : undefined,
+            right: (c >= 1) ? blackThin : undefined
+          }
+        };
+      } else if (meta.type === 'tableRow' && c < 5) {
+        (ws[cellRef] as any).s = {
+          fill: { patternType: 'solid', fgColor: { rgb: catLightRgb } },
+          font: { name: 'Calibri', sz: 10.5, bold: false, color: { rgb: '000000' } },
+          alignment: baseAlignment,
+          border: {
+            top: blackThin,
+            bottom: blackThin,
+            left: blackThin,
+            right: blackThin
+          }
         };
       } else {
         // All other cells: solid white background
