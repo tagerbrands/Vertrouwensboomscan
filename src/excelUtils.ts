@@ -1268,3 +1268,704 @@ export async function parseExcelScan(file: File, index: number): Promise<Partici
     color: getParticipantColor(index),
   };
 }
+
+export interface AgendaExportItem {
+  category: { id: string; name: string };
+  element: { name: string };
+  instrument: { id: string; text: string };
+  owner?: string;
+  deadline?: string;
+}
+
+export interface AandachtspuntExportItem {
+  category: { id: string; name: string };
+  element: { name: string };
+  instrument: { id: string; text: string };
+  status?: string;
+  vergtActie?: boolean;
+  owner?: string;
+  deadline?: string;
+}
+
+export interface ExportBorgingsagendaExcelData {
+  participantName?: string;
+  isEnglish: boolean;
+  agendaItems: AgendaExportItem[];
+  aandachtspuntenItems?: AandachtspuntExportItem[];
+}
+
+/**
+ * Exports a focused, cleanly styled Excel workbook containing:
+ * 1) Tab 1: Borgingsagenda (priorities, owners, deadlines) with col A wide enough for 'Datum van exporteren:'
+ * 2) Tab 2: Aandachtspunten (overview of instruments not yet deployed, matching formatting)
+ * 3) Tab 3: Informatie (structured card with active origin, author and publication hyperlinks)
+ */
+export function exportBorgingsagendaToExcel(data: ExportBorgingsagendaExcelData): void {
+  const { participantName, isEnglish, agendaItems, aandachtspuntenItems = [] } = data;
+  const wb = XLSX.utils.book_new();
+  const displayDate = new Date().toLocaleString(isEnglish ? 'en-US' : 'nl-NL');
+
+  const blackThin = { style: 'thin', color: { rgb: '000000' } };
+  const greyFill = { patternType: 'solid', fgColor: { rgb: 'D9D9D9' } };
+  const whiteFill = { patternType: 'solid', fgColor: { rgb: 'FFFFFF' } };
+
+  const baseAlignment = {
+    vertical: 'center',
+    horizontal: 'left',
+    wrapText: true
+  };
+
+  const centerAlignment = {
+    vertical: 'center',
+    horizontal: 'center',
+    wrapText: true
+  };
+
+  // -------------------------------------------------------------
+  // Sheet 1: Borgingsagenda / Assurance Agenda
+  // -------------------------------------------------------------
+  const rows1: (string | number)[][] = [];
+  const merges1: XLSX.Range[] = [];
+  const rowTypes1: {
+    type: 'title' | 'subtitle' | 'meta' | 'tableHeader' | 'tableRow' | 'empty';
+    catId?: string;
+    textLength?: number;
+    metaRowIndex?: number;
+  }[] = [];
+
+  // Row 0: Title - Merged A1:F1 (left-aligned)
+  rows1.push([
+    isEnglish ? "Priorities in the Assurance Agenda" : "Prioriteiten in de borgingsagenda",
+    "", "", "", "", ""
+  ]);
+  rowTypes1.push({ type: 'title' });
+  merges1.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } });
+
+  // Row 1: Subtitle - Merged A2:F2 (left-aligned with black bottom underline)
+  rows1.push([
+    isEnglish
+      ? "Prioritized action list of instruments requiring action, with assigned owners and deadlines"
+      : "Geprioriteerde actielijst van instrumenten waarbij actie vereist is, voorzien van eigenaren en deadlines",
+    "", "", "", "", ""
+  ]);
+  rowTypes1.push({ type: 'subtitle' });
+  merges1.push({ s: { r: 1, c: 0 }, e: { r: 1, c: 5 } });
+
+  // Row 2: Empty separator row
+  rows1.push(["", "", "", "", "", ""]);
+  rowTypes1.push({ type: 'empty' });
+
+  // Row 3: Respondent / Alias (Metadata card row 0)
+  rows1.push([
+    isEnglish ? "Respondent / Alias:" : "Respondent / Alias:",
+    participantName || (isEnglish ? "Anonymous" : "Anoniem"),
+    "", "", "", ""
+  ]);
+  rowTypes1.push({ type: 'meta', metaRowIndex: 0 });
+
+  // Row 4: Datum van exporteren (Metadata card row 1)
+  rows1.push([
+    isEnglish ? "Export Date:" : "Datum van exporteren:",
+    displayDate,
+    "", "", "", ""
+  ]);
+  rowTypes1.push({ type: 'meta', metaRowIndex: 1 });
+
+  // Row 5: Empty separator row
+  rows1.push(["", "", "", "", "", ""]);
+  rowTypes1.push({ type: 'empty' });
+
+  // Row 6: Table Header
+  rows1.push([
+    isEnglish ? "Priority #" : "Prioriteit #",
+    isEnglish ? "Category" : "Categorie",
+    isEnglish ? "Element" : "Element",
+    isEnglish ? "Instrument (Action Item)" : "Instrument (Actiepunt)",
+    isEnglish ? "Responsible (Owner)" : "Verantwoordelijke (Eigenaar)",
+    isEnglish ? "Deadline" : "Deadline",
+  ]);
+  rowTypes1.push({ type: 'tableHeader' });
+
+  // Table Rows
+  if (agendaItems.length > 0) {
+    agendaItems.forEach((item, idx) => {
+      rows1.push([
+        idx + 1,
+        item.category.name,
+        item.element.name,
+        item.instrument.text,
+        item.owner || "",
+        item.deadline || "",
+      ]);
+      const maxLen = Math.max(
+        Math.ceil((item.instrument.text || "").length / 54),
+        Math.ceil((item.element.name || "").length / 22),
+        Math.ceil((item.owner || "").length / 24)
+      );
+      rowTypes1.push({ type: 'tableRow', catId: item.category.id, textLength: maxLen });
+    });
+  } else {
+    rows1.push([
+      "-",
+      isEnglish ? "No action items selected." : "Geen actiepunten geselecteerd.",
+      "", "", "", ""
+    ]);
+    rowTypes1.push({ type: 'tableRow', textLength: 1 });
+  }
+
+  const ws1 = XLSX.utils.aoa_to_sheet(rows1);
+  const totalRows1 = rows1.length;
+  const styledRowsCount1 = totalRows1 + 10;
+  const styledColsCount1 = 15;
+
+  for (let r = 0; r < styledRowsCount1; r++) {
+    const meta = r < totalRows1 ? (rowTypes1[r] || { type: 'empty' }) : { type: 'empty' as const };
+    const catLightRgb = meta.catId ? getCategoryLightRgb(meta.catId) : 'FFFFFF';
+
+    for (let c = 0; c < styledColsCount1; c++) {
+      const cellRef = XLSX.utils.encode_cell({ r, c });
+      if (!ws1[cellRef]) {
+        ws1[cellRef] = { t: 's', v: '' };
+      }
+
+      if (meta.type === 'title' && c < 6) {
+        (ws1[cellRef] as any).s = {
+          fill: whiteFill,
+          font: { name: 'Calibri', sz: 13, bold: true, color: { rgb: '000000' } },
+          alignment: baseAlignment
+        };
+      } else if (meta.type === 'subtitle' && c < 6) {
+        (ws1[cellRef] as any).s = {
+          fill: whiteFill,
+          font: { name: 'Calibri', sz: 10, bold: false, color: { rgb: '334155' } },
+          alignment: baseAlignment,
+          border: { bottom: blackThin }
+        };
+      } else if (meta.type === 'meta' && c < 6) {
+        const isRespondentRow = meta.metaRowIndex === 0;
+        const isDatumRow = meta.metaRowIndex === 1;
+        const isBold = c === 0;
+        (ws1[cellRef] as any).s = {
+          fill: greyFill,
+          font: { name: 'Calibri', sz: 11, bold: isBold, color: { rgb: '000000' } },
+          alignment: baseAlignment,
+          border: {
+            top: isRespondentRow ? blackThin : undefined,
+            bottom: isDatumRow ? blackThin : undefined,
+            left: c === 0 ? blackThin : undefined,
+            right: c === 5 ? blackThin : undefined
+          }
+        };
+      } else if (meta.type === 'tableHeader' && c < 6) {
+        (ws1[cellRef] as any).s = {
+          fill: greyFill,
+          font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: '000000' } },
+          alignment: c === 0 ? centerAlignment : baseAlignment,
+          border: {
+            top: blackThin,
+            bottom: blackThin,
+            left: blackThin,
+            right: blackThin
+          }
+        };
+      } else if (meta.type === 'tableRow' && c < 6) {
+        const isCategoryCol = c === 1;
+        (ws1[cellRef] as any).s = {
+          fill: { patternType: 'solid', fgColor: { rgb: catLightRgb } },
+          font: { name: 'Calibri', sz: 10.5, bold: isCategoryCol || c === 0, color: { rgb: '000000' } },
+          alignment: c === 0 ? centerAlignment : baseAlignment,
+          border: {
+            top: blackThin,
+            bottom: blackThin,
+            left: blackThin,
+            right: blackThin
+          }
+        };
+      } else {
+        (ws1[cellRef] as any).s = {
+          fill: whiteFill,
+          font: { name: 'Calibri', sz: 11, color: { rgb: 'FFFFFF' } },
+          alignment: baseAlignment
+        };
+      }
+    }
+  }
+
+  ws1['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: styledRowsCount1 - 1, c: styledColsCount1 - 1 } });
+  ws1['!merges'] = merges1;
+  ws1['!cols'] = [
+    { wch: 25 }, // A: Prioriteit # (wide enough so "Datum van exporteren:" completely fits in 1 cell!)
+    { wch: 32 }, // B: Categorie
+    { wch: 26 }, // C: Element
+    { wch: 70 }, // D: Instrument (Actiepunt)
+    { wch: 28 }, // E: Verantwoordelijke (Eigenaar)
+    { wch: 18 }, // F: Deadline
+    { wch: 12 }, // G
+    { wch: 12 }, // H
+  ];
+
+  ws1['!rows'] = rows1.map((_, idx) => {
+    const meta = rowTypes1[idx];
+    if (!meta) return { hpt: 20 };
+    if (meta.type === 'title') return { hpt: 26 };
+    if (meta.type === 'subtitle') return { hpt: 22 };
+    if (meta.type === 'meta') return { hpt: 22 };
+    if (meta.type === 'tableHeader') return { hpt: 24 };
+    if (meta.type === 'tableRow') {
+      const lines = meta.textLength || 1;
+      return { hpt: Math.max(26, lines * 16 + 8) };
+    }
+    if (meta.type === 'empty') return { hpt: 14 };
+    return { hpt: 20 };
+  });
+
+  // -------------------------------------------------------------
+  // Sheet 2: Aandachtspunten / Points of Attention
+  // -------------------------------------------------------------
+  const rows2: (string | number)[][] = [];
+  const merges2: XLSX.Range[] = [];
+  const rowTypes2: {
+    type: 'title' | 'subtitle' | 'meta' | 'tableHeader' | 'tableRow' | 'empty';
+    catId?: string;
+    textLength?: number;
+    metaRowIndex?: number;
+  }[] = [];
+
+  // Row 0: Title - Merged A1:G1
+  rows2.push([
+    isEnglish ? "Points of Attention in Quality Assurance" : "Aandachtspunten in de borging",
+    "", "", "", "", "", ""
+  ]);
+  rowTypes2.push({ type: 'title' });
+  merges2.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 6 } });
+
+  // Row 1: Subtitle - Merged A2:G2
+  rows2.push([
+    isEnglish
+      ? "Overview of instruments not yet actively deployed (excluding 'Not needed')"
+      : "Overzicht van instrumenten die nog niet worden ingezet (excl. 'Niet nodig')",
+    "", "", "", "", "", ""
+  ]);
+  rowTypes2.push({ type: 'subtitle' });
+  merges2.push({ s: { r: 1, c: 0 }, e: { r: 1, c: 6 } });
+
+  // Row 2: Empty separator
+  rows2.push(["", "", "", "", "", "", ""]);
+  rowTypes2.push({ type: 'empty' });
+
+  // Row 3: Respondent / Alias
+  rows2.push([
+    isEnglish ? "Respondent / Alias:" : "Respondent / Alias:",
+    participantName || (isEnglish ? "Anonymous" : "Anoniem"),
+    "", "", "", "", ""
+  ]);
+  rowTypes2.push({ type: 'meta', metaRowIndex: 0 });
+
+  // Row 4: Datum van exporteren
+  rows2.push([
+    isEnglish ? "Export Date:" : "Datum van exporteren:",
+    displayDate,
+    "", "", "", "", ""
+  ]);
+  rowTypes2.push({ type: 'meta', metaRowIndex: 1 });
+
+  // Row 5: Empty separator
+  rows2.push(["", "", "", "", "", "", ""]);
+  rowTypes2.push({ type: 'empty' });
+
+  // Row 6: Table Header
+  rows2.push([
+    isEnglish ? "No." : "Nr.",
+    isEnglish ? "Category" : "Categorie",
+    isEnglish ? "Element" : "Element",
+    isEnglish ? "Instrument (Point of Attention)" : "Instrument (Aandachtspunt)",
+    isEnglish ? "Status" : "Status",
+    isEnglish ? "Responsible (Owner)" : "Verantwoordelijke (Eigenaar)",
+    isEnglish ? "Deadline" : "Deadline",
+  ]);
+  rowTypes2.push({ type: 'tableHeader' });
+
+  // Table rows for Aandachtspunten
+  if (aandachtspuntenItems.length > 0) {
+    aandachtspuntenItems.forEach((item, idx) => {
+      const statusLabel = item.status 
+        ? item.status 
+        : item.vergtActie 
+          ? (isEnglish ? "Requires action" : "Vergt actie")
+          : (isEnglish ? "Not yet deployed" : "Nog niet ingezet");
+
+      rows2.push([
+        idx + 1,
+        item.category.name,
+        item.element.name,
+        item.instrument.text,
+        statusLabel,
+        item.owner || "",
+        item.deadline || "",
+      ]);
+      const maxLen = Math.max(
+        Math.ceil((item.instrument.text || "").length / 54),
+        Math.ceil((item.element.name || "").length / 22),
+        Math.ceil((item.owner || "").length / 24)
+      );
+      rowTypes2.push({ type: 'tableRow', catId: item.category.id, textLength: maxLen });
+    });
+  } else {
+    rows2.push([
+      "-",
+      isEnglish 
+        ? "No points of attention. All instruments are deployed or marked 'Not needed'." 
+        : "Geen aandachtspunten. Alle instrumenten worden ingezet of zijn gemarkeerd als 'Niet nodig'.",
+      "", "", "", "", ""
+    ]);
+    rowTypes2.push({ type: 'tableRow', textLength: 1 });
+  }
+
+  const ws2 = XLSX.utils.aoa_to_sheet(rows2);
+  const totalRows2 = rows2.length;
+  const styledRowsCount2 = totalRows2 + 10;
+  const styledColsCount2 = 15;
+
+  for (let r = 0; r < styledRowsCount2; r++) {
+    const meta = r < totalRows2 ? (rowTypes2[r] || { type: 'empty' }) : { type: 'empty' as const };
+    const catLightRgb = meta.catId ? getCategoryLightRgb(meta.catId) : 'FFFFFF';
+
+    for (let c = 0; c < styledColsCount2; c++) {
+      const cellRef = XLSX.utils.encode_cell({ r, c });
+      if (!ws2[cellRef]) {
+        ws2[cellRef] = { t: 's', v: '' };
+      }
+
+      if (meta.type === 'title' && c < 7) {
+        (ws2[cellRef] as any).s = {
+          fill: whiteFill,
+          font: { name: 'Calibri', sz: 13, bold: true, color: { rgb: '000000' } },
+          alignment: baseAlignment
+        };
+      } else if (meta.type === 'subtitle' && c < 7) {
+        (ws2[cellRef] as any).s = {
+          fill: whiteFill,
+          font: { name: 'Calibri', sz: 10, bold: false, color: { rgb: '334155' } },
+          alignment: baseAlignment,
+          border: { bottom: blackThin }
+        };
+      } else if (meta.type === 'meta' && c < 7) {
+        const isRespondentRow = meta.metaRowIndex === 0;
+        const isDatumRow = meta.metaRowIndex === 1;
+        const isBold = c === 0;
+        (ws2[cellRef] as any).s = {
+          fill: greyFill,
+          font: { name: 'Calibri', sz: 11, bold: isBold, color: { rgb: '000000' } },
+          alignment: baseAlignment,
+          border: {
+            top: isRespondentRow ? blackThin : undefined,
+            bottom: isDatumRow ? blackThin : undefined,
+            left: c === 0 ? blackThin : undefined,
+            right: c === 6 ? blackThin : undefined
+          }
+        };
+      } else if (meta.type === 'tableHeader' && c < 7) {
+        (ws2[cellRef] as any).s = {
+          fill: greyFill,
+          font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: '000000' } },
+          alignment: c === 0 ? centerAlignment : baseAlignment,
+          border: {
+            top: blackThin,
+            bottom: blackThin,
+            left: blackThin,
+            right: blackThin
+          }
+        };
+      } else if (meta.type === 'tableRow' && c < 7) {
+        const isCategoryCol = c === 1;
+        (ws2[cellRef] as any).s = {
+          fill: { patternType: 'solid', fgColor: { rgb: catLightRgb } },
+          font: { name: 'Calibri', sz: 10.5, bold: isCategoryCol || c === 0, color: { rgb: '000000' } },
+          alignment: c === 0 ? centerAlignment : baseAlignment,
+          border: {
+            top: blackThin,
+            bottom: blackThin,
+            left: blackThin,
+            right: blackThin
+          }
+        };
+      } else {
+        (ws2[cellRef] as any).s = {
+          fill: whiteFill,
+          font: { name: 'Calibri', sz: 11, color: { rgb: 'FFFFFF' } },
+          alignment: baseAlignment
+        };
+      }
+    }
+  }
+
+  ws2['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: styledRowsCount2 - 1, c: styledColsCount2 - 1 } });
+  ws2['!merges'] = merges2;
+  ws2['!cols'] = [
+    { wch: 25 }, // A: Nr. (wide enough so "Datum van exporteren:" completely fits in 1 cell!)
+    { wch: 32 }, // B: Categorie
+    { wch: 26 }, // C: Element
+    { wch: 70 }, // D: Instrument (Aandachtspunt)
+    { wch: 18 }, // E: Status
+    { wch: 26 }, // F: Verantwoordelijke (Eigenaar)
+    { wch: 18 }, // G: Deadline
+    { wch: 12 }, // H
+  ];
+
+  ws2['!rows'] = rows2.map((_, idx) => {
+    const meta = rowTypes2[idx];
+    if (!meta) return { hpt: 20 };
+    if (meta.type === 'title') return { hpt: 26 };
+    if (meta.type === 'subtitle') return { hpt: 22 };
+    if (meta.type === 'meta') return { hpt: 22 };
+    if (meta.type === 'tableHeader') return { hpt: 24 };
+    if (meta.type === 'tableRow') {
+      const lines = meta.textLength || 1;
+      return { hpt: Math.max(26, lines * 16 + 8) };
+    }
+    if (meta.type === 'empty') return { hpt: 14 };
+    return { hpt: 20 };
+  });
+
+  // -------------------------------------------------------------
+  // Sheet 3: Informatie & Publicatie (met hyperlinks, zonder dubbele zinnen)
+  // -------------------------------------------------------------
+  const rows3: (string | number)[][] = [];
+  const merges3: XLSX.Range[] = [];
+
+  // Row 0: Title
+  rows3.push([
+    "De Vertrouwensboom: Borgingsanalyse",
+    "", "", "", ""
+  ]);
+  merges3.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 4 } });
+
+  // Row 1: Subtitle
+  rows3.push([
+    isEnglish
+      ? "About this self-scan and publication references"
+      : "Informatie over deze zelfscan en publicatieverwijzingen",
+    "", "", "", ""
+  ]);
+  merges3.push({ s: { r: 1, c: 0 }, e: { r: 1, c: 4 } });
+
+  // Row 2: Empty
+  rows3.push(["", "", "", "", ""]);
+
+  // Row 3: Card Header
+  rows3.push([
+    isEnglish ? "SOURCE, METHODOLOGY & PUBLICATION" : "HERKOMST, METHODIEK & PUBLICATIE",
+    "", "", "", ""
+  ]);
+  merges3.push({ s: { r: 3, c: 0 }, e: { r: 3, c: 4 } });
+
+  // Row 4: Online Zelfscan (with link)
+  rows3.push([
+    isEnglish ? "Application:" : "Toepassing:",
+    "online zelfscan",
+    "", "", ""
+  ]);
+  merges3.push({ s: { r: 4, c: 1 }, e: { r: 4, c: 4 } });
+
+  // Row 5: Auteur (with link)
+  rows3.push([
+    isEnglish ? "Author:" : "Auteur:",
+    "Tim A. Gerbrands",
+    "", "", ""
+  ]);
+  merges3.push({ s: { r: 5, c: 1 }, e: { r: 5, c: 4 } });
+
+  // Row 6: Publicatie (with link)
+  rows3.push([
+    isEnglish ? "Publication on The Trust Tree:" : "Publicatie over De Vertrouwensboom:",
+    "Examens - Tijdschrift voor de toetspraktijk, feb. 2026",
+    "", "", ""
+  ]);
+  merges3.push({ s: { r: 6, c: 1 }, e: { r: 6, c: 4 } });
+
+  const ws3 = XLSX.utils.aoa_to_sheet(rows3);
+  const totalRows3 = rows3.length;
+  const styledRowsCount3 = totalRows3 + 10;
+  const styledColsCount3 = 12;
+  const linkBlue = { rgb: '0563C1' };
+
+  for (let r = 0; r < styledRowsCount3; r++) {
+    for (let c = 0; c < styledColsCount3; c++) {
+      const cellRef = XLSX.utils.encode_cell({ r, c });
+      if (!ws3[cellRef]) {
+        ws3[cellRef] = { t: 's', v: '' };
+      }
+
+      if (r === 0 && c < 5) {
+        (ws3[cellRef] as any).s = {
+          fill: whiteFill,
+          font: { name: 'Calibri', sz: 14, bold: true, color: { rgb: '000000' } },
+          alignment: baseAlignment
+        };
+      } else if (r === 1 && c < 5) {
+        (ws3[cellRef] as any).s = {
+          fill: whiteFill,
+          font: { name: 'Calibri', sz: 10, bold: false, color: { rgb: '334155' } },
+          alignment: baseAlignment,
+          border: { bottom: blackThin }
+        };
+      } else if (r === 3 && c < 5) {
+        (ws3[cellRef] as any).s = {
+          fill: greyFill,
+          font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: '000000' } },
+          alignment: baseAlignment,
+          border: { top: blackThin, bottom: blackThin, left: c === 0 ? blackThin : undefined, right: c === 4 ? blackThin : undefined }
+        };
+      } else if (r === 4 && c < 5) {
+        const isLinkCol = c >= 1;
+        if (isLinkCol) {
+          (ws3[cellRef] as any).l = { Target: "https://tagerbrands.github.io/Vertrouwensboomscan/", Tooltip: "Online Zelfscan Vertrouwensboom" };
+          (ws3[cellRef] as any).f = `HYPERLINK("https://tagerbrands.github.io/Vertrouwensboomscan/", "${isEnglish ? 'online self-scan' : 'online zelfscan'}")`;
+        }
+        (ws3[cellRef] as any).s = {
+          fill: whiteFill,
+          font: {
+            name: 'Calibri',
+            sz: 11,
+            bold: c === 0,
+            color: isLinkCol ? linkBlue : { rgb: '000000' },
+            underline: isLinkCol
+          },
+          alignment: baseAlignment,
+          border: { top: blackThin, bottom: blackThin, left: c === 0 ? blackThin : undefined, right: c === 4 ? blackThin : undefined }
+        };
+      } else if (r === 5 && c < 5) {
+        const isLinkCol = c >= 1;
+        if (isLinkCol) {
+          (ws3[cellRef] as any).l = { Target: "https://www.linkedin.com/in/tim-gerbrands", Tooltip: "LinkedIn Profiel Tim A. Gerbrands" };
+          (ws3[cellRef] as any).f = `HYPERLINK("https://www.linkedin.com/in/tim-gerbrands", "Tim A. Gerbrands")`;
+        }
+        (ws3[cellRef] as any).s = {
+          fill: whiteFill,
+          font: {
+            name: 'Calibri',
+            sz: 11,
+            bold: c === 0,
+            color: isLinkCol ? linkBlue : { rgb: '000000' },
+            underline: isLinkCol
+          },
+          alignment: baseAlignment,
+          border: { top: blackThin, bottom: blackThin, left: c === 0 ? blackThin : undefined, right: c === 4 ? blackThin : undefined }
+        };
+      } else if (r === 6 && c < 5) {
+        const isLinkCol = c >= 1;
+        if (isLinkCol) {
+          (ws3[cellRef] as any).l = { Target: "https://e-xamens.nl/februari-2026-01/", Tooltip: "Publicatie in Examens Tijdschrift" };
+          (ws3[cellRef] as any).f = `HYPERLINK("https://e-xamens.nl/februari-2026-01/", "Examens - Tijdschrift voor de toetspraktijk, feb. 2026")`;
+        }
+        (ws3[cellRef] as any).s = {
+          fill: whiteFill,
+          font: {
+            name: 'Calibri',
+            sz: 11,
+            bold: c === 0,
+            color: isLinkCol ? linkBlue : { rgb: '000000' },
+            underline: isLinkCol
+          },
+          alignment: baseAlignment,
+          border: { top: blackThin, bottom: blackThin, left: c === 0 ? blackThin : undefined, right: c === 4 ? blackThin : undefined }
+        };
+      } else {
+        (ws3[cellRef] as any).s = {
+          fill: whiteFill,
+          font: { name: 'Calibri', sz: 11, color: { rgb: 'FFFFFF' } },
+          alignment: baseAlignment
+        };
+      }
+    }
+  }
+
+  ws3['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: styledRowsCount3 - 1, c: styledColsCount3 - 1 } });
+  ws3['!merges'] = merges3;
+  ws3['!cols'] = [
+    { wch: 32 }, // A
+    { wch: 22 }, // B
+    { wch: 10 }, // C
+    { wch: 22 }, // D
+    { wch: 16 }, // E
+    { wch: 12 }, // F
+  ];
+  ws3['!rows'] = rows3.map((_, idx) => {
+    if (idx === 0) return { hpt: 26 };
+    if (idx === 1) return { hpt: 22 };
+    if (idx === 2) return { hpt: 14 };
+    if (idx === 3) return { hpt: 24 };
+    return { hpt: 22 };
+  });
+
+  XLSX.utils.book_append_sheet(wb, ws1, isEnglish ? "Assurance Agenda" : "Borgingsagenda");
+  XLSX.utils.book_append_sheet(wb, ws2, isEnglish ? "Points of Attention" : "Aandachtspunten");
+  XLSX.utils.book_append_sheet(wb, ws3, isEnglish ? "Information" : "Informatie");
+
+  const safeName = (participantName || (isEnglish ? "Agenda" : "Agenda"))
+    .replace(/[^a-zA-Z0-9_-]/g, "_")
+    .substring(0, 30);
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const fileName = isEnglish
+    ? `TrustTree_AssuranceAgenda_${safeName}_${dateStr}.xlsx`
+    : `Borgingsagenda_${safeName}_${dateStr}.xlsx`;
+
+  XLSX.writeFile(wb, fileName);
+}
+
+export interface ExportGroupAnalysisExcelData {
+  groupName?: string;
+  isEnglish: boolean;
+  categories: Category[];
+  groupDoeIk: Record<string, boolean>;
+  groupVergtActie: Record<string, boolean>;
+  groupNietNodig: Record<string, boolean>;
+  groupConfidence: Record<string, number>;
+  groupCategoryComments: Record<string, string>;
+  groupActionDetails: Record<string, { owner?: string; deadline?: string; who?: string; action?: string }>;
+  groupAgendaOrder: string[];
+  scans?: ParticipantScan[];
+}
+
+/**
+ * Exports complete Group Analysis data to a multi-sheet Excel file matching the layout and styling
+ * of the single scan (Borging per Categorie, Borgingsagenda, Aandachtspunten, Deelnemers, Informatie).
+ */
+export function exportGroupAnalysisToExcel(data: ExportGroupAnalysisExcelData): void {
+  const {
+    groupName,
+    isEnglish,
+    categories,
+    groupDoeIk,
+    groupVergtActie,
+    groupNietNodig,
+    groupConfidence,
+    groupCategoryComments,
+    groupActionDetails,
+    groupAgendaOrder,
+    scans = [],
+  } = data;
+
+  const resolvedName = (groupName && groupName.trim()) 
+    ? groupName.trim() 
+    : (isEnglish ? "Group Consensus" : "Groepsconsensus");
+
+  // Call exportDetailedReportToExcel which generates:
+  // Sheet 1: Borging per Categorie (with full category colors, tables, comments, owners, deadlines)
+  // Sheet 2: Borgingsagenda
+  // Sheet 3: Aandachtspunten
+  // Sheet 4: Volledige Zelfscan
+  // Sheet 5: Ruwe Data (Groepsanalyse)
+  exportDetailedReportToExcel({
+    participantName: resolvedName,
+    isEnglish,
+    categories,
+    checkedDoeIk: groupDoeIk,
+    checkedVergtActie: groupVergtActie,
+    checkedNietNodig: groupNietNodig,
+    confidence: groupConfidence,
+    comments: groupCategoryComments,
+    actionDetails: groupActionDetails as any,
+    agendaOrder: groupAgendaOrder,
+  });
+}

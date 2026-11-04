@@ -26,9 +26,11 @@ import {
   Info,
   GripVertical,
   User,
-  Calendar
+  Calendar,
+  Download
 } from 'lucide-react';
 import { Category, Instrument } from './data';
+import { exportBorgingsagendaToExcel } from './excelUtils';
 
 interface GroupConsensusVisualsProps {
   categories: Category[];
@@ -244,6 +246,35 @@ export const GroupConsensusVisuals: React.FC<GroupConsensusVisualsProps> = ({
     });
     return points;
   }, [categories, groupDoeIk, groupNietNodig]);
+  
+  const handleExportGroupAgendaExcel = () => {
+    const agendaItemsForExport = borgingsagenda.map(item => ({
+      category: { id: item.category.id, name: item.category.name },
+      element: { name: item.element.name },
+      instrument: { id: item.instrument.id, text: item.instrument.text },
+      owner: groupActionDetails[item.instrument.id]?.owner || '',
+      deadline: groupActionDetails[item.instrument.id]?.deadline || '',
+    }));
+
+    const aandachtspuntenForExport = aandachtspunten.map(item => ({
+      category: { id: item.category.id, name: item.category.name },
+      element: { name: item.element.name },
+      instrument: { id: item.instrument.id, text: item.instrument.text },
+      status: groupVergtActie[item.instrument.id]
+        ? (isEnglish ? 'Requires action' : 'Vergt actie')
+        : (isEnglish ? 'Not yet deployed' : 'Nog niet ingezet'),
+      vergtActie: !!groupVergtActie[item.instrument.id],
+      owner: groupActionDetails[item.instrument.id]?.owner || '',
+      deadline: groupActionDetails[item.instrument.id]?.deadline || '',
+    }));
+
+    exportBorgingsagendaToExcel({
+      participantName: isEnglish ? "Group Consensus" : "Groepsconsensus",
+      isEnglish,
+      agendaItems: agendaItemsForExport,
+      aandachtspuntenItems: aandachtspuntenForExport,
+    });
+  };
 
   // Custom Tick for Spider Chart
   const CustomRadarTick = ({ payload, x, y, textAnchor, stroke, radius }: any) => {
@@ -661,16 +692,26 @@ export const GroupConsensusVisuals: React.FC<GroupConsensusVisualsProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
         {/* Borgingsagenda */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col h-full transition-colors">
-          <div className="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-              {isEnglish ? "Quality Assurance Agenda (Consensus)" : "Borgingsagenda (Consensus)"}
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              {isEnglish
-                ? "Instruments agreed by the group as requiring action. Drag items to re-order priority."
-                : "Instrumenten waarvoor de groep 'Vergt actie' heeft vastgesteld. Sleep om prioriteit te wijzigen."}
-            </p>
+          <div className="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                {isEnglish ? "Quality Assurance Agenda (Consensus)" : "Borgingsagenda (Consensus)"}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {isEnglish
+                  ? "Instruments agreed by the group as requiring action. Drag items to re-order priority."
+                  : "Instrumenten waarvoor de groep 'Vergt actie' heeft vastgesteld. Sleep om prioriteit te wijzigen."}
+              </p>
+            </div>
+            <button
+              onClick={handleExportGroupAgendaExcel}
+              className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold py-2 px-3.5 rounded-xl shadow-sm hover:shadow transition-all text-xs sm:text-sm shrink-0 cursor-pointer self-start sm:self-auto"
+              title={isEnglish ? "Export Quality Assurance Agenda to Excel (.xlsx)" : "Exporteer de borgingsagenda naar Excel (.xlsx)"}
+            >
+              <Download className="w-4 h-4" />
+              <span>{isEnglish ? "Excel Export" : "Excel-export"}</span>
+            </button>
           </div>
           <div className="p-6 flex-1 bg-slate-50/50 dark:bg-slate-900/20">
             {borgingsagenda.length === 0 ? (

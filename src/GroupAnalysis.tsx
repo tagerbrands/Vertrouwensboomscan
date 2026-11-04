@@ -12,7 +12,8 @@ import {
   Calendar,
   RotateCcw,
   CheckCircle2,
-  MessageSquare
+  MessageSquare,
+  X
 } from 'lucide-react';
 import {
   Radar,
@@ -30,7 +31,14 @@ import {
   Cell
 } from 'recharts';
 import { categoriesNl, categoriesEn, Category, Instrument } from './data';
-import { ParticipantScan, parseExcelScan } from './excelUtils';
+import {
+  ParticipantScan,
+  parseExcelScan,
+  exportBorgingsagendaToExcel,
+  exportGroupAnalysisToExcel,
+  AgendaExportItem,
+  AandachtspuntExportItem
+} from './excelUtils';
 import { GroupConsensusVisuals } from './GroupConsensusVisuals';
 
 interface GroupAnalysisProps {
@@ -79,6 +87,8 @@ export const GroupAnalysis: React.FC<GroupAnalysisProps> = ({
   const [scans, setScans] = useState<ParticipantScan[]>(() => loadState('group_scans', []));
   const [hoveredParticipantId, setHoveredParticipantId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [groupExportName, setGroupExportName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Save uploaded scans to localStorage
@@ -760,6 +770,89 @@ export const GroupAnalysis: React.FC<GroupAnalysisProps> = ({
     printWindow.document.close();
   };
 
+  // Excel Export: Complete Group Analysis
+  const handleExportGroupAnalysisExcel = () => {
+    exportGroupAnalysisToExcel({
+      groupName: groupExportName.trim() || (isEnglish ? "Group Consensus" : "Groepsconsensus"),
+      isEnglish,
+      categories,
+      groupDoeIk: effectiveGroupDoeIk,
+      groupVergtActie: effectiveGroupVergtActie,
+      groupNietNodig: effectiveGroupNietNodig,
+      groupConfidence,
+      groupCategoryComments,
+      groupActionDetails: groupActionDetails as any,
+      groupAgendaOrder,
+      scans,
+    });
+    setShowExportModal(false);
+  };
+
+  // Excel Export: Group Borgingsagenda & Aandachtspunten
+  const handleExportGroupAgendaExcel = () => {
+    const agendaItems: AgendaExportItem[] = [];
+    groupAgendaOrder.forEach(id => {
+      categories.forEach(cat => {
+        cat.elements.forEach(el => {
+          const inst = el.instruments.find(i => i.id === id);
+          if (inst && effectiveGroupVergtActie[id]) {
+            agendaItems.push({
+              category: { id: cat.id, name: cat.name },
+              element: { name: el.name },
+              instrument: { id: inst.id, text: inst.text },
+              owner: groupActionDetails[inst.id]?.owner || '',
+              deadline: groupActionDetails[inst.id]?.deadline || '',
+            });
+          }
+        });
+      });
+    });
+    categories.forEach(cat => {
+      cat.elements.forEach(el => {
+        el.instruments.forEach(inst => {
+          if (effectiveGroupVergtActie[inst.id] && !agendaItems.some(i => i.instrument.id === inst.id)) {
+            agendaItems.push({
+              category: { id: cat.id, name: cat.name },
+              element: { name: el.name },
+              instrument: { id: inst.id, text: inst.text },
+              owner: groupActionDetails[inst.id]?.owner || '',
+              deadline: groupActionDetails[inst.id]?.deadline || '',
+            });
+          }
+        });
+      });
+    });
+
+    const aandachtsItems: AandachtspuntExportItem[] = [];
+    categories.forEach(cat => {
+      cat.elements.forEach(el => {
+        el.instruments.forEach(inst => {
+          if (!effectiveGroupDoeIk[inst.id] && !effectiveGroupNietNodig[inst.id]) {
+            aandachtsItems.push({
+              category: { id: cat.id, name: cat.name },
+              element: { name: el.name },
+              instrument: { id: inst.id, text: inst.text },
+              status: effectiveGroupVergtActie[inst.id]
+                ? (isEnglish ? 'Requires action' : 'Vergt actie')
+                : (isEnglish ? 'Not yet deployed' : 'Nog niet ingezet'),
+              vergtActie: !!effectiveGroupVergtActie[inst.id],
+              owner: groupActionDetails[inst.id]?.owner || '',
+              deadline: groupActionDetails[inst.id]?.deadline || '',
+            });
+          }
+        });
+      });
+    });
+
+    exportBorgingsagendaToExcel({
+      participantName: groupExportName.trim() || (isEnglish ? "Group Consensus" : "Groepsconsensus"),
+      isEnglish,
+      agendaItems,
+      aandachtspuntenItems: aandachtsItems,
+    });
+    setShowExportModal(false);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans pb-20 transition-colors">
       {/* Header */}
@@ -803,14 +896,14 @@ export const GroupAnalysis: React.FC<GroupAnalysisProps> = ({
               <span className="hidden sm:inline">{isEnglish ? "Upload Scans" : "Scans Toevoegen"}</span>
             </button>
 
-            {/* PDF Export Button */}
+            {/* Export Button (opens export modal) */}
             <button
-              onClick={handleGenerateGroupPdf}
+              onClick={() => setShowExportModal(true)}
               className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow-sm transition-colors cursor-pointer"
-              title={isEnglish ? "Export PDF report" : "PDF-rapport exporteren"}
+              title={isEnglish ? "Export group analysis" : "Groepsanalyse exporteren"}
             >
               <Download className="w-4 h-4" />
-              <span>{isEnglish ? "PDF Report" : "PDF Rapport"}</span>
+              <span>{isEnglish ? "Export" : "Exporteer"}</span>
             </button>
 
             {scans.length > 0 && (
@@ -1526,6 +1619,97 @@ export const GroupAnalysis: React.FC<GroupAnalysisProps> = ({
           </>
         )}
       </main>
+
+      {/* Export Modal for Group Analysis (with 2 distinct frames for PDF and Excel) */}
+      {showExportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs transition-opacity animate-fade-in">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-6 relative transition-colors">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowExportModal(false)}
+              className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors cursor-pointer"
+              title={isEnglish ? "Close" : "Sluiten"}
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Header */}
+            <div className="pr-8 space-y-1">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                {isEnglish ? "Export Group Analysis" : "Exporteer de groepsanalyse"}
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {isEnglish 
+                  ? "Suitable for annual evaluation, examination boards and/or annual reports." 
+                  : "Geschikt voor jaarlijkse evaluatie, examencommissies en/of opname in het jaarverslag."}
+              </p>
+            </div>
+
+            {/* 2 Kaders: PDF-exports en Excel-exports */}
+            <div className="space-y-4">
+              {/* Bovenste kader: PDF-exports */}
+              <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 sm:p-5 flex flex-col space-y-3">
+                <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  {isEnglish ? "PDF Export" : "PDF-export"}
+                </div>
+                <button
+                  onClick={() => {
+                    setShowExportModal(false);
+                    handleGenerateGroupPdf();
+                  }}
+                  className="flex items-center justify-center gap-2 bg-emerald-100 hover:bg-emerald-200 active:bg-emerald-300 text-slate-900 dark:bg-emerald-200 dark:hover:bg-emerald-100 dark:text-slate-950 font-semibold py-3 px-3 rounded-xl border border-emerald-300/70 shadow-sm hover:shadow transition-all text-xs sm:text-sm cursor-pointer w-full"
+                >
+                  <Download className="w-4 h-4 shrink-0 text-slate-900 dark:text-slate-950" />
+                  <span>{isEnglish ? "PDF Report" : "PDF Rapport"}</span>
+                </button>
+              </div>
+
+              {/* Onderste kader: Excel-exports */}
+              <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 sm:p-5 flex flex-col space-y-3">
+                <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  {isEnglish ? "Excel Export" : "Excel-export"}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    {isEnglish ? "Enter a group or program name:" : "Voer een naam of alias in (voor de export):"}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={isEnglish ? "E.g. Program X - Examination Board" : "Bijv. Opleiding X - Examencommissie"}
+                    value={groupExportName}
+                    onChange={e => setGroupExportName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleExportGroupAnalysisExcel();
+                    }}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm transition-all"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <button
+                    onClick={handleExportGroupAnalysisExcel}
+                    className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold py-3 px-3 rounded-xl shadow-sm hover:shadow transition-colors text-xs sm:text-sm cursor-pointer"
+                    title={isEnglish ? "Export full group analysis to Excel" : "Volledige groepsanalyse exporteren naar Excel"}
+                  >
+                    <Download className="w-4 h-4 shrink-0" />
+                    <span>{isEnglish ? "Full analysis" : "Volledige analyse"}</span>
+                  </button>
+
+                  <button
+                    onClick={handleExportGroupAgendaExcel}
+                    className="flex items-center justify-center gap-2 bg-emerald-100 hover:bg-emerald-200 active:bg-emerald-300 text-slate-900 dark:bg-emerald-200 dark:hover:bg-emerald-100 dark:text-slate-950 font-semibold py-3 px-3 rounded-xl border border-emerald-300/70 shadow-sm hover:shadow transition-colors text-xs sm:text-sm cursor-pointer"
+                    title={isEnglish ? "Export Quality Assurance Agenda to Excel" : "Borgingsagenda exporteren naar Excel"}
+                  >
+                    <Download className="w-4 h-4 shrink-0 text-slate-900 dark:text-slate-950" />
+                    <span>{isEnglish ? "Assurance Agenda" : "Borgingsagenda"}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
